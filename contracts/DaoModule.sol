@@ -39,7 +39,7 @@ contract DaoTxModule {
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
         // This is not 100% correct as it is not a string concat but oprates on bytes
-        string memory question = string(abi.encodePacked(dependencyId ,bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
+        string memory question = string(abi.encodePacked(dependencyId, bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
         bytes32 expectedProposalId = getProposalId(
             templateId, question, address(this), 24 * 3600, 0, 0
         );
@@ -53,7 +53,7 @@ contract DaoTxModule {
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
         // This is not 100% correct as it is not a string concat but oprates on bytes
-        string memory question = string(abi.encodePacked(dependencyId ,bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
+        string memory question = string(abi.encodePacked(dependencyId, bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
         bytes32 proposalId = getProposalId(
             templateId, question, address(this), 24 * 3600, 0, 0
         );
