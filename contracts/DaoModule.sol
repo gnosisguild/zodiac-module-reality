@@ -32,14 +32,14 @@ contract DaoTxModule {
         executor = _executor;
         oracle = _oracle;
         // We assume the question is "Did proposal <proposalHash> decide to execute the Safe tx with hash <txHash>"
-        template = oracle.createTemplate('{"proposalHash": "%s", "txHash": "%s", "type": "bool"}');
+        template = oracle.createTemplate('{"dependencyId": "%s", "proposalHash": "%s", "txHash": "%s", "type": "bool"}');
     }
 
-    function addProposal(bytes32 proposalHash, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
+    function addProposal(bytes32 dependencyId, bytes32 proposalHash, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
         // This is not 100% correct as it is not a string concat but oprates on bytes
-        string memory question = string(abi.encodePacked(proposalHash, bytes3(0xe2909f), txHash));
+        string memory question = string(abi.encodePacked(dependencyId ,bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
         bytes32 expectedProposalId = getProposalId(
             templateId, question, address(this), 24 * 3600, 0, 0
         );
@@ -48,11 +48,12 @@ contract DaoTxModule {
         require(expectedProposalId == proposalId, "Unexpected proposal id");
     }
 
-    function executeProposal(bytes32 proposalHash, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
+    function executeProposal(bytes32 dependencyId, bytes32 proposalHash, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
+        require(dependencyId == bytes32(0) || executedPropsals[dependencyId], "Dependency not executed yet");
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
         // This is not 100% correct as it is not a string concat but oprates on bytes
-        string memory question = string(abi.encodePacked(proposalHash, bytes3(0xe2909f), txHash));
+        string memory question = string(abi.encodePacked(dependencyId ,bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
         bytes32 proposalId = getProposalId(
             templateId, question, address(this), 24 * 3600, 0, 0
         );
