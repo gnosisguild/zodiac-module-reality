@@ -41,10 +41,10 @@ contract DaoTxModule {
         // This is not 100% correct as it is not a string concat but oprates on bytes
         string memory question = string(abi.encodePacked(dependencyId, bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
         bytes32 expectedProposalId = getProposalId(
-            templateId, question, address(this), 24 * 3600, 0, 0
+            templateId, question, address(this), 48 * 3600, 0, 0
         );
-        // timeout == 24h
-        bytes32 proposalId = oracle.askQuestion(templateId, question, address(this), 24 * 3600, 0, 0);
+        // timeout == 48h
+        bytes32 proposalId = oracle.askQuestion(templateId, question, address(this), 48 * 3600, 0, 0);
         require(expectedProposalId == proposalId, "Unexpected proposal id");
     }
 
@@ -55,7 +55,7 @@ contract DaoTxModule {
         // This is not 100% correct as it is not a string concat but oprates on bytes
         string memory question = string(abi.encodePacked(dependencyId, bytes3(0xe2909f), proposalHash, bytes3(0xe2909f), txHash));
         bytes32 proposalId = getProposalId(
-            templateId, question, address(this), 24 * 3600, 0, 0
+            templateId, question, address(this), 48 * 3600, 0, 0
         );
         require(!executedPropsals[proposalId], "Cannot execute transaction again");
         executedPropsals[proposalId] = true;
@@ -75,5 +75,6 @@ contract DaoTxModule {
         return keccak256(abi.encode(this, to, value, data, operation));
     }
 
-    // TODO: add arbritration methods
+    // TODO: add authenticated setters for timeouts (module and realitio) 
+    // TODO: add arbitration methods
 }
