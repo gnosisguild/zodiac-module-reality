@@ -44,4 +44,8 @@ interface Realitio {
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(string calldata content) external returns (uint256);
+
+    /// @notice Returns the highest bond posted so far for a question
+    /// @param question_id The ID of the question 
+    function getBond(bytes32 question_id) external view returns(uint256);
 }
