@@ -74,6 +74,7 @@ contract DaoTxModule {
     }
 
     // TODO: take an array of complete transactions
+    // TODO: If questionArbitrator or questionTimeout the questionId changes. Check impact
     function executeProposal(string memory proposalId, bytes32[] memory txHashes, uint256 txIndex, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
