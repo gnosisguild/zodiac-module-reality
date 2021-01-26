@@ -74,7 +74,6 @@ contract DaoTxModule {
     }
 
     // TODO: take an array of complete transactions
-    // TODO: If questionArbitrator or questionTimeout the questionId changes. Check impact
     function executeProposal(string memory proposalId, bytes32[] memory txHashes, uint256 txIndex, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
@@ -82,12 +81,16 @@ contract DaoTxModule {
         require(txHashes[txIndex] == txHash, "Unexpected transaction hash");
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
+        
+        // We use the hash of the question, as the other parameters might change, but the question not
+        bytes32 questionHash = keccak256(bytes(question));
+        require(txIndex == 0 || executedPropsals[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
+        require(!executedPropsals[questionHash][txHash], "Cannot execute transaction again");
+        executedPropsals[questionHash][txHash] = true;
+
         bytes32 questionId = getQuestionId(
             templateId, question, questionArbitrator, questionTimeout, 0, 0
         );
-        require(txIndex == 0 || executedPropsals[questionId][txHashes[txIndex - 1]], "Previous transaction not executed yet");
-        require(!executedPropsals[questionId][txHash], "Cannot execute transaction again");
-        executedPropsals[questionId][txHash] = true;
         // We expect a boolean as an answer (1 == true)
         require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
         require(uint256(oracle.getFinalizeTS(questionId)) + uint256(questionCooldown) > block.timestamp, "Wait for additional cooldown");
