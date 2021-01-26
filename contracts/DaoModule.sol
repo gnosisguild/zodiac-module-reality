@@ -73,9 +73,11 @@ contract DaoTxModule {
         require(expectedQuestionId == questionId, "Unexpected proposal id");
     }
 
+    // TODO: take an array of complete transactions
     function executeProposal(string memory proposalId, bytes32[] memory txHashes, uint256 txIndex, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
         uint256 templateId = template;
         bytes32 txHash = getTransactionHash(to, value, data, operation);
+        // TODO: might be cheaper doing a linear search to find the index than sending it along
         require(txHashes[txIndex] == txHash, "Unexpected transaction hash");
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
