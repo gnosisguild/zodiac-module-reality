@@ -19,7 +19,7 @@
   "repository": {
     "type": "git"
   },
-  "author": "msc.meissner@gmail.com",
+  "author": "richard@gnosis.io",
   "license": "MIT",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
