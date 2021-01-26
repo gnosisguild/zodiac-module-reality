@@ -26,13 +26,28 @@ contract DaoTxModule {
     Executor public executor;
     Realitio public oracle;
     uint256 public template;
+    uint32 public questionTimeout;
+    uint32 public questionCooldown;
     mapping(bytes32 => mapping(bytes32 => bool)) executedPropsals;
 
     constructor(Executor _executor, Realitio _oracle) {
         executor = _executor;
         oracle = _oracle;
+        questionTimeout = 48 * 3600;
+        questionCooldown = 24 * 3600;
         //See https://github.com/realitio/realitio-dapp#structuring-and-fetching-information
-        template = oracle.createTemplate('{"title": "Did the proposal with the id %s voted to execute the array of Module transactions that have the hash %s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool"}');
+        template = oracle.createTemplate('{"title": "Did the Snapshop proposal with the id %s pass the execution of the array of Module transactions that have the hash %s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool"}');
+    }
+
+    function setQuestionTimeout(uint32 timeout) public {
+        require(msg.sender == address(executor), "Not authorized to update timeout");
+        require(timeout > 0, "Timeout has to be greater 0");
+        questionTimeout = timeout;
+    }
+
+    function setQuestionCooldown(uint32 cooldown) public {
+        require(msg.sender == address(executor), "Not authorized to update cooldown");
+        questionCooldown = cooldown;
     }
 
     // TODO: take an array of complete transactions
@@ -42,10 +57,10 @@ contract DaoTxModule {
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
         bytes32 expectedQuestionId = getQuestionId(
-            templateId, question, address(this), 48 * 3600, 0, 0
+            templateId, question, address(this), questionTimeout, 0, 0
         );
         // timeout == 48h
-        bytes32 questionId = oracle.askQuestion(templateId, question, address(this), 48 * 3600, 0, 0);
+        bytes32 questionId = oracle.askQuestion(templateId, question, address(this), questionTimeout, 0, 0);
         require(expectedQuestionId == questionId, "Unexpected proposal id");
     }
 
@@ -56,14 +71,14 @@ contract DaoTxModule {
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
         bytes32 questionId = getQuestionId(
-            templateId, question, address(this), 48 * 3600, 0, 0
+            templateId, question, address(this), questionTimeout, 0, 0
         );
         require(txIndex == 0 || executedPropsals[questionId][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         require(!executedPropsals[questionId][txHash], "Cannot execute transaction again");
         executedPropsals[questionId][txHash] = true;
         // We expect a boolean as an answer (1 == true)
         require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
-        require(oracle.getFinalizeTS(questionId) + 24 hours > block.timestamp, "Wait for additional cooldown");
+        require(uint256(oracle.getFinalizeTS(questionId)) + uint256(questionCooldown) > block.timestamp, "Wait for additional cooldown");
         executor.execTransactionFromModule(to, value, data, operation);
     }
 
@@ -93,8 +108,4 @@ contract DaoTxModule {
         if (b < 10) return bytes1(b + 0x30);
         else return bytes1(b + 0x57);
     }
-
-
-    // 582c96cb65b2d96cb65b2d96cbe5f2793c1e8f47a3d168349acde673b9dceef7
-    // 9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658
 }
