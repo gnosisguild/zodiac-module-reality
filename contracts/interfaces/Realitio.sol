@@ -32,11 +32,11 @@ interface Realitio {
 
     /// @notice Returns the timestamp at which the question will be/was finalized
     /// @param question_id The ID of the question 
-    function getFinalizeTS(bytes32 question_id) external view returns(uint32);
+    function getFinalizeTS(bytes32 question_id) external view returns (uint32);
 
     /// @notice Returns whether the question is pending arbitration
     /// @param question_id The ID of the question 
-    function isPendingArbitration(bytes32 question_id) external view returns(bool);
+    function isPendingArbitration(bytes32 question_id) external view returns (bool);
 
     /// @notice Create a reusable template, which should be a JSON document.
     /// Placeholders should use gettext() syntax, eg %s.
@@ -47,5 +47,9 @@ interface Realitio {
 
     /// @notice Returns the highest bond posted so far for a question
     /// @param question_id The ID of the question 
-    function getBond(bytes32 question_id) external view returns(uint256);
+    function getBond(bytes32 question_id) external view returns (uint256);
+
+    /// @notice Returns the questions's content hash, identifying the question content
+    /// @param question_id The ID of the question 
+    function getContentHash(bytes32 question_id) external view returns (bytes32);
 }

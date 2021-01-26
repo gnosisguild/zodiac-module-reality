@@ -21,7 +21,13 @@ interface Executor {
         returns (bool success);
 }
 
-contract DaoTxModule {
+contract DaoModule {
+
+    event ExecutionAnnouncement(
+        bytes32 indexed questionId,
+        string indexed proposalId,
+        uint256 timestamp
+    );
 
     Executor public executor;
     Realitio public oracle;
@@ -30,17 +36,17 @@ contract DaoTxModule {
     uint32 public questionCooldown;
     address public questionArbitrator;
     uint256 public minimumBond;
+    mapping(bytes32 => mapping(string => uint256)) executionAnnouncements;
     mapping(bytes32 => mapping(bytes32 => bool)) executedPropsals;
 
-    constructor(Executor _executor, Realitio _oracle) {
+    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint256 bond, uint256 templateId) {
         executor = _executor;
         oracle = _oracle;
-        questionTimeout = 48 * 3600;
-        questionCooldown = 24 * 3600;
+        questionTimeout = timeout;
+        questionCooldown = cooldown;
         questionArbitrator = address(this);
-        minimumBond = 0;
-        //See https://github.com/realitio/realitio-dapp#structuring-and-fetching-information
-        template = oracle.createTemplate('{"title": "Did the Snapshop proposal with the id %s pass the execution of the array of Module transactions that have the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool"}');
+        minimumBond = bond;
+        template = templateId;
     }
 
     function setQuestionTimeout(uint32 timeout) public {
@@ -64,46 +70,73 @@ contract DaoTxModule {
         minimumBond = bond;
     }
 
+    function setTemplate(uint256 templateId) public {
+        require(msg.sender == address(executor), "Not authorized to update template");
+        template = templateId;
+    }
+
     // TODO: take an array of complete transactions
     // Theoretically this doesn't need to be done via the module
     function addProposal(string memory proposalId, bytes32[] memory txHashes) public {
         uint256 templateId = template;
         uint32 timeout = questionTimeout;
         address arbitrator = questionArbitrator;
-        string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
-        string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
+        string memory question = buildQuestion(proposalId, txHashes);
         bytes32 expectedQuestionId = getQuestionId(
             templateId, question, arbitrator, timeout, 0, 0
         );
-        // timeout == 48h
         bytes32 questionId = oracle.askQuestion(templateId, question, arbitrator, timeout, 0, 0);
-        require(expectedQuestionId == questionId, "Unexpected proposal id");
+        require(expectedQuestionId == questionId, "Unexpected question id");
+    }
+
+    function markProposalReadyForExecution(string memory proposalId, bytes32[] memory txHashes) public {
+        string memory question = buildQuestion(proposalId, txHashes);
+        bytes32 questionId = getQuestionId(
+            template, question, questionArbitrator, questionTimeout, 0, 0
+        );
+        require(executionAnnouncements[questionId][question] == 0, "Transaction was already marked as ready");
+        executionAnnouncements[questionId][question] = block.timestamp;
+        // We expect a boolean as an answer (1 == true)
+        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
+        uint256 minBond = minimumBond;
+        require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
+        emit ExecutionAnnouncement(questionId, proposalId, block.timestamp);
     }
 
     // TODO: take an array of complete transactions
-    function executeProposal(string memory proposalId, bytes32[] memory txHashes, uint256 txIndex, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
-        uint256 templateId = template;
+    function executeProposal(bytes32 questionId, string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
         bytes32 txHash = getTransactionHash(to, value, data, operation);
-        // TODO: might be cheaper doing a linear search to find the index than sending it along
+        // Find the index in the tx hash array of the tx we want to execute
+        uint256 txIndex = 0;
+        for (uint256 i = 0; i < txHashes.length; i++) {
+            if (txHashes[i] == txHash) {
+                txIndex = i;
+                break;
+            }
+        }
         require(txHashes[txIndex] == txHash, "Unexpected transaction hash");
-        string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
-        string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
 
-        // We use the hash of the question, as the other parameters might change, but the question not
+        string memory question = buildQuestion(proposalId, txHashes);
+        uint256 announcementTime = executionAnnouncements[questionId][question];
+        require(announcementTime > 0, "Proposal execution has not been marked as ready");
+        require(announcementTime + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
+
+        // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
         bytes32 questionHash = keccak256(bytes(question));
         require(txIndex == 0 || executedPropsals[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         require(!executedPropsals[questionHash][txHash], "Cannot execute transaction again");
         executedPropsals[questionHash][txHash] = true;
 
-        bytes32 questionId = getQuestionId(
-            templateId, question, questionArbitrator, questionTimeout, 0, 0
-        );
         // We expect a boolean as an answer (1 == true)
         require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
-        require(uint256(oracle.getFinalizeTS(questionId)) + uint256(questionCooldown) > block.timestamp, "Wait for additional cooldown");
         uint256 minBond = minimumBond;
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         executor.execTransactionFromModule(to, value, data, operation);
+    }
+
+    function buildQuestion(string memory proposalId, bytes32[] memory txHashes) internal pure returns(string memory) {
+        string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
+        return string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
     }
 
     function getQuestionId(uint256 templateId, string memory question, address arbitrator, uint32 timeout, uint32 openingTs, uint256 nonce) public view returns(bytes32) {

@@ -17,3 +17,13 @@
 - Realitio
   - https://www.npmjs.com/package/@realitio/realitio-contracts
   - https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
+  - Rinkeby: `0x3D00D77ee771405628a4bA4913175EcC095538da`
+
+### Example
+
+- `yarn build`
+- `yarn hardhat --network rinkeby setup --dao <safe_address> --oracle <realitio_address> --cooldown 60 --timeout 30`
+- Enable module (e.g. with transaction builder and abi from `0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F`)
+- `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
+- `yarn hardhat --network rinkeby markProposalForExecution --module <module_address> --proposal-file sample_proposal.json`
+- `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id> --proposal-file sample_proposal.json`
