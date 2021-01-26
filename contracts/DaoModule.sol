@@ -156,7 +156,7 @@ contract DaoModule {
         executor.execTransactionFromModule(to, value, data, operation);
     }
 
-    function buildQuestion(string memory proposalId, bytes32[] memory txHashes) internal pure returns(string memory) {
+    function buildQuestion(string memory proposalId, bytes32[] memory txHashes) public pure returns(string memory) {
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         return string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
     }
