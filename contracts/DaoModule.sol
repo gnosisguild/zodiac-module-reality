@@ -23,6 +23,8 @@ interface Executor {
 
 contract DaoModule {
 
+    uint256 public constant INVALIDATED_TIME = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+
     event ExecutionAnnouncement(
         bytes32 indexed questionId,
         string indexed proposalId,
@@ -90,6 +92,8 @@ contract DaoModule {
     }
 
     function markProposalReadyForExecution(string memory proposalId, bytes32[] memory txHashes) public {
+        // Note: We could route this through a module transaction.
+        // This would increase visibility for this interaction as it would show up in the Safe clients.
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionId = getQuestionId(
             template, question, questionArbitrator, questionTimeout, 0, 0
@@ -101,6 +105,12 @@ contract DaoModule {
         uint256 minBond = minimumBond;
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         emit ExecutionAnnouncement(questionId, proposalId, block.timestamp);
+    }
+
+    function markProposalAsInvalid(bytes32 questionId, string memory proposalId, bytes32[] memory txHashes) public {
+        require(msg.sender == address(executor), "Not authorized to invalidate proposal");
+        string memory question = buildQuestion(proposalId, txHashes);
+        executionAnnouncements[questionId][question] = INVALIDATED_TIME;
     }
 
     // TODO: take an array of complete transactions
@@ -119,6 +129,7 @@ contract DaoModule {
         string memory question = buildQuestion(proposalId, txHashes);
         uint256 announcementTime = executionAnnouncements[questionId][question];
         require(announcementTime > 0, "Proposal execution has not been marked as ready");
+        require(announcementTime != INVALIDATED_TIME, "Proposal has been marked as invalid");
         require(announcementTime + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
 
         // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
