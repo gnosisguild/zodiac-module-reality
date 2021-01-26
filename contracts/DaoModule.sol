@@ -91,9 +91,20 @@ contract DaoModule {
         require(expectedQuestionId == questionId, "Unexpected question id");
     }
 
+    function requestProposalReadyForExecution(string memory proposalId, bytes32[] memory txHashes) public {
+        bytes memory data = abi.encodeWithSignature(
+            "authorizedMarkProposalReadyForExecution(string,bytes32[])", 
+            proposalId, 
+            txHashes
+        );
+        // We redirect the request via the executor
+        // This is a preemptive check that this modules is enabled
+        // This also notifies the executor that a proposal is being prepared for execution
+        require(executor.execTransactionFromModule(address(this), 0, data, Enum.Operation.Call), "Could not mark proposal ready for execution");
+    }
+
     function markProposalReadyForExecution(string memory proposalId, bytes32[] memory txHashes) public {
-        // Note: We could route this through a module transaction.
-        // This would increase visibility for this interaction as it would show up in the Safe clients.
+        require(msg.sender == address(executor), "Not authorized to mark proposal as ready");
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionId = getQuestionId(
             template, question, questionArbitrator, questionTimeout, 0, 0

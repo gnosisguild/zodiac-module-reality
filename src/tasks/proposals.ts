@@ -75,7 +75,7 @@ task("markProposalAsReady", "Mark a proposal question as answered and ready for 
 
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);
 
-            const tx = await module.markProposalReadyForExecution(proposal.id, proposal.txsHashes);
+            const tx = await module.requestProposalReadyForExecution(proposal.id, proposal.txsHashes);
             console.log("Transaction:", tx.hash);
         });
 
