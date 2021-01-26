@@ -28,6 +28,7 @@ contract DaoTxModule {
     uint256 public template;
     uint32 public questionTimeout;
     uint32 public questionCooldown;
+    address public questionArbitrator;
     mapping(bytes32 => mapping(bytes32 => bool)) executedPropsals;
 
     constructor(Executor _executor, Realitio _oracle) {
@@ -35,8 +36,9 @@ contract DaoTxModule {
         oracle = _oracle;
         questionTimeout = 48 * 3600;
         questionCooldown = 24 * 3600;
+        questionArbitrator = address(this);
         //See https://github.com/realitio/realitio-dapp#structuring-and-fetching-information
-        template = oracle.createTemplate('{"title": "Did the Snapshop proposal with the id %s pass the execution of the array of Module transactions that have the hash %s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool"}');
+        template = oracle.createTemplate('{"title": "Did the Snapshop proposal with the id %s pass the execution of the array of Module transactions that have the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool"}');
     }
 
     function setQuestionTimeout(uint32 timeout) public {
@@ -50,17 +52,24 @@ contract DaoTxModule {
         questionCooldown = cooldown;
     }
 
+    function setArbitrator(address arbitrator) public {
+        require(msg.sender == address(executor), "Not authorized to update cooldown");
+        questionArbitrator = arbitrator;
+    }
+
     // TODO: take an array of complete transactions
     // Theoretically this doesn't need to be done via the module
     function addProposal(string memory proposalId, bytes32[] memory txHashes) public {
         uint256 templateId = template;
+        uint32 timeout = questionTimeout;
+        address arbitrator = questionArbitrator;
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
         bytes32 expectedQuestionId = getQuestionId(
-            templateId, question, address(this), questionTimeout, 0, 0
+            templateId, question, arbitrator, timeout, 0, 0
         );
         // timeout == 48h
-        bytes32 questionId = oracle.askQuestion(templateId, question, address(this), questionTimeout, 0, 0);
+        bytes32 questionId = oracle.askQuestion(templateId, question, arbitrator, timeout, 0, 0);
         require(expectedQuestionId == questionId, "Unexpected proposal id");
     }
 
@@ -71,7 +80,7 @@ contract DaoTxModule {
         string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         string memory question = string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
         bytes32 questionId = getQuestionId(
-            templateId, question, address(this), questionTimeout, 0, 0
+            templateId, question, questionArbitrator, questionTimeout, 0, 0
         );
         require(txIndex == 0 || executedPropsals[questionId][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         require(!executedPropsals[questionId][txHash], "Cannot execute transaction again");
