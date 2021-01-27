@@ -42,6 +42,7 @@ contract DaoModule {
     mapping(bytes32 => mapping(bytes32 => bool)) executedPropsals;
 
     constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint256 bond, uint256 templateId) {
+        require(timeout > 0, "Timeout has to be greater 0");
         executor = _executor;
         oracle = _oracle;
         questionTimeout = timeout;

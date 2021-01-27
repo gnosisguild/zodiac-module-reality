@@ -8,6 +8,7 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
+    "coverage": "hardhat coverage",
     "deploy": "hardhat deploy",
     "release": "./scripts/deploy.sh",
     "lint": "yarn lint:sol && yarn lint:ts",
