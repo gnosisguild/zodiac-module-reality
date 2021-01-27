@@ -27,4 +27,4 @@
 - `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
 - `yarn hardhat --network rinkeby markProposalForExecution --module <module_address> --proposal-file sample_proposal.json`
-- `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id> --proposal-file sample_proposal.json`
+- `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`

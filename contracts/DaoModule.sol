@@ -38,8 +38,8 @@ contract DaoModule {
     uint32 public questionCooldown;
     address public questionArbitrator;
     uint256 public minimumBond;
-    mapping(bytes32 => mapping(string => uint256)) executionAnnouncements;
-    mapping(bytes32 => mapping(bytes32 => bool)) executedPropsals;
+    mapping(bytes32 => mapping(string => uint256)) public executionAnnouncements;
+    mapping(bytes32 => mapping(bytes32 => bool)) public executedPropsalTransactions;
 
     constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint256 bond, uint256 templateId) {
         require(timeout > 0, "Timeout has to be greater 0");
@@ -126,8 +126,14 @@ contract DaoModule {
     }
 
     // TODO: take an array of complete transactions
-    function executeProposal(bytes32 questionId, string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
-        bytes32 txHash = getTransactionHash(to, value, data, operation);
+    function executeProposal(bytes32 questionId, string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
+
+        // These have been checked before, but we double check to make sure that they did not change (should not be possible)
+        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
+        uint256 minBond = minimumBond;
+        require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
+
+        bytes32 txHash = getTransactionHash(to, value, data, operation, nonce);
         // Find the index in the tx hash array of the tx we want to execute
         uint256 txIndex = 0;
         for (uint256 i = 0; i < txHashes.length; i++) {
@@ -146,14 +152,10 @@ contract DaoModule {
 
         // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
         bytes32 questionHash = keccak256(bytes(question));
-        require(txIndex == 0 || executedPropsals[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
-        require(!executedPropsals[questionHash][txHash], "Cannot execute transaction again");
-        executedPropsals[questionHash][txHash] = true;
+        require(txIndex == 0 || executedPropsalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
+        require(!executedPropsalTransactions[questionHash][txHash], "Cannot execute transaction again");
+        executedPropsalTransactions[questionHash][txHash] = true;
 
-        // We expect a boolean as an answer (1 == true)
-        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
-        uint256 minBond = minimumBond;
-        require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         executor.execTransactionFromModule(to, value, data, operation);
     }
 
@@ -167,9 +169,9 @@ contract DaoModule {
         return keccak256(abi.encodePacked(contentHash, arbitrator, timeout, this, nonce));
     }
 
-    function getTransactionHash(address to, uint256 value, bytes memory data, Enum.Operation operation) public view returns(bytes32) {
+    function getTransactionHash(address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public view returns(bytes32) {
         // TODO: EIP-712
-        return keccak256(abi.encode(this, to, value, data, operation));
+        return keccak256(abi.encode(this, to, value, data, operation, nonce));
     }
 
     function bytes32ToAsciiString(bytes32 _bytes) internal pure returns (string memory) {

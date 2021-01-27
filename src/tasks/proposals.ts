@@ -17,13 +17,14 @@ interface ModuleTransaction {
     to: string,
     value: string,
     data: string,
-    operation: number
+    operation: number,
+    nonce: number
 }
 
 const getProposalDetails = async (module: Contract, path: string): Promise<ExtendedProposal> => {
     const proposal: Proposal = JSON.parse(readFileSync(path, "utf-8"))
     const txsHashes = await Promise.all(proposal.txs.map(async (tx) => {
-        return await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation)
+        return await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
     }));
     return {
         ...proposal,
@@ -91,7 +92,9 @@ task("executeProposal", "Executes a proposal")
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);
 
             for (const moduleTx of proposal.txs) {
-                const tx = await module.executeProposal(taskArgs.question, proposal.id, proposal.txsHashes, moduleTx.to, moduleTx.value, moduleTx.data, moduleTx.operation);
+                const tx = await module.executeProposal(
+                    taskArgs.question, proposal.id, proposal.txsHashes, moduleTx.to, moduleTx.value, moduleTx.data, moduleTx.operation, moduleTx.nonce
+                );
                 console.log("Transaction:", tx.hash);
             }
         });
