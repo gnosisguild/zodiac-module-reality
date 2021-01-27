@@ -94,7 +94,7 @@ contract DaoModule {
 
     function requestProposalReadyForExecution(string memory proposalId, bytes32[] memory txHashes) public {
         bytes memory data = abi.encodeWithSignature(
-            "authorizedMarkProposalReadyForExecution(string,bytes32[])", 
+            "markProposalReadyForExecution(string,bytes32[])", 
             proposalId, 
             txHashes
         );
