@@ -59,7 +59,7 @@ describe("DaoModule", async () => {
     })
 
     describe("requestProposalReadyForExecution", async () => {
-        it.only("throws if module is not enabled", async () => {
+        it("throws if module is not enabled", async () => {
             const { mock, module, executor } = await setupTestWithMockExecutor();
             await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), false)
             const id = "some_random_id";
@@ -67,7 +67,7 @@ describe("DaoModule", async () => {
             await expect(
                 module.requestProposalReadyForExecution(id, [txHash])
             ).to.be.revertedWith("Could not mark proposal ready for execution");
-            
+
             const markProposalReadyForExecutionData = module.interface.encodeFunctionData(
                 "markProposalReadyForExecution",
                 [id, [txHash]]
@@ -81,7 +81,8 @@ describe("DaoModule", async () => {
                 (await mock.callStatic.invocationCountForCalldata(execCallData)).toNumber()
             ).to.be.equals(0);
         })
-        it.only("calls executor to mark proposal as ready", async () => {
+        
+        it("calls executor to mark proposal as ready", async () => {
             const { module, mock, executor } = await setupTestWithMockExecutor();
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
