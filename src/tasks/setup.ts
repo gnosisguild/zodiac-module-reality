@@ -1,6 +1,7 @@
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
+import defaultTemplate from "./defaultTemplate.json";
 
 task("setup", "Provides the clearing price to an auction")
     .addParam("dao", "Address of the DAO (e.g. Safe)", undefined, types.string)
@@ -29,7 +30,7 @@ task("createDaoTemplate", "Creates a question template on the oracle address")
     .addParam(
         "template", 
         "Template string for question (should include placeholders for proposal id and txs hash)", 
-        '{"title": "Did the Snapshop proposal with the id %s pass the execution of the array of Module transactions that have the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool", "category": "DAO proposal"}', 
+        JSON.stringify(defaultTemplate), 
         types.string,
         true
     )
