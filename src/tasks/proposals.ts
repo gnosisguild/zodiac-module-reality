@@ -71,7 +71,7 @@ task("markProposalAsReady", "Mark a proposal question as answered and ready for 
         .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
         .setAction(async (taskArgs, hardhatRuntime) => {
             const ethers = hardhatRuntime.ethers;
-            const Module = await ethers.getContractFactory("DaoModule");
+            const Module = await ethers.getContractFactory("DaoModuleWithAnnouncement");
             const module = await Module.attach(taskArgs.module);
 
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);
