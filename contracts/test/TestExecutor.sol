@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 contract TestExecutor {
     address public module;
 
-    receive() payable external {}
+    receive() external payable {}
 
     function setModule(address _module) external {
         module = _module;

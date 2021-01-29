@@ -5,8 +5,7 @@ import "./interfaces/Realitio.sol";
 
 contract Enum {
     enum Operation {
-        Call,
-        DelegateCall
+        Call, DelegateCall
     }
 }
 
