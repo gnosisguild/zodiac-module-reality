@@ -105,6 +105,7 @@ contract DaoModule {
         bytes32 expectedQuestionId = getQuestionId(
             templateId, question, arbitrator, timeout, 0, nonce
         );
+        require(questionStates[expectedQuestionId] == 0, "New question state is not unset");
         questionStates[expectedQuestionId] = 1;
         bytes32 questionId = oracle.askQuestion(templateId, question, arbitrator, timeout, 0, nonce);
         require(expectedQuestionId == questionId, "Unexpected question id");
