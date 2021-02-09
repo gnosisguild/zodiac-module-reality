@@ -66,20 +66,6 @@ task("showProposal", "Shows proposal quesion details")
             console.log("Transactions:", proposal.txs);
         });
 
-task("markProposalAsReady", "Mark a proposal question as answered and ready for execution")
-        .addParam("module", "Address of the module", undefined, types.string)
-        .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
-        .setAction(async (taskArgs, hardhatRuntime) => {
-            const ethers = hardhatRuntime.ethers;
-            const Module = await ethers.getContractFactory("DaoModuleWithAnnouncement");
-            const module = await Module.attach(taskArgs.module);
-
-            const proposal = await getProposalDetails(module, taskArgs.proposalFile);
-
-            const tx = await module.requestProposalReadyForExecution(proposal.id, proposal.txsHashes);
-            console.log("Transaction:", tx.hash);
-        });
-
 task("executeProposal", "Executes a proposal")
         .addParam("module", "Address of the module", undefined, types.string)
         .addParam("question", "Id of the question for the proposal", undefined, types.string)
