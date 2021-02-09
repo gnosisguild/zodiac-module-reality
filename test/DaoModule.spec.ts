@@ -296,6 +296,26 @@ describe("DaoModuleWithAnnouncement", async () => {
             ).to.be.revertedWith("Unexpected question id");
         })
 
+        it("throws if proposed question was already invalidated before creation", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
+
+            const markProposalAsInvalid = module.interface.encodeFunctionData(
+                "markProposalAsInvalid",
+                [questionId]
+            );
+            await executor.exec(module.address, 0, markProposalAsInvalid);
+
+            await expect(
+                module.addProposal(id, [txHash])
+            ).to.be.revertedWith("New question state is not unset");
+        })
+
         it("calls askQuestion with correct data", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
