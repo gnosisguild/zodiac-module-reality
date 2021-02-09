@@ -30,7 +30,7 @@ const EIP712_TYPES = {
     ]
 }
 
-describe("DaoModuleWithAnnouncement", async () => {
+describe("DaoModule", async () => {
 
     const baseSetup = deployments.createFixture(async () => {
         await deployments.fixture();

@@ -26,5 +26,4 @@
 - Enable module (e.g. with transaction builder and abi from `0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F`)
 - `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
-- `yarn hardhat --network rinkeby markProposalForExecution --module <module_address> --proposal-file sample_proposal.json`
 - `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`

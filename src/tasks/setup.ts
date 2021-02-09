@@ -16,11 +16,10 @@ task("setup", "Provides the clearing price to an auction")
         types.string, 
         true
     )
-    .addParam("withAnnouncements", "Indicates if module with announcement functionality should be used", false, types.boolean, true)
     .setAction(async (taskArgs, hardhatRuntime) => {
         const [caller] = await hardhatRuntime.ethers.getSigners();
         console.log("Using the account:", caller.address);
-        const Module = await hardhatRuntime.ethers.getContractFactory(taskArgs.withAnnouncements ? "DaoModuleWithAnnouncements" : "DaoModule");
+        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
         const module = await Module.deploy(taskArgs.dao, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.bond, taskArgs.template);
 
         console.log("Module deployed to:", module.address);
