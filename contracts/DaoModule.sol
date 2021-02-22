@@ -96,10 +96,12 @@ contract DaoModule {
         address arbitrator = questionArbitrator;
         string memory question = buildQuestion(proposalId, txHashes);
         if (nonce > 0) {
-            // Check if question with lower nonce was invalid, else it should not be allowed to increase the nonce
+            // Previous nonce must have been invalidated by the oracle.
+            // However, if the proposal was internally invalidated, it should not be possible to ask it again.
             bytes32 invalidatedQuestionId = getQuestionId(
                 templateId, question, arbitrator, timeout, 0, nonce - 1
             );
+            require(questionStates[invalidatedQuestionId] != INVALIDATED, "This proposal has been marked as invalid");
             require(oracle.resultFor(invalidatedQuestionId) == bytes32(INVALIDATED), "Previous question was not invalidated");
         }
         bytes32 expectedQuestionId = getQuestionId(
