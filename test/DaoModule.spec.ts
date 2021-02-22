@@ -30,6 +30,8 @@ const EIP712_TYPES = {
     ]
 }
 
+const INVALIDATED_STATE = BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
 describe("DaoModule", async () => {
 
     const baseSetup = deployments.createFixture(async () => {
@@ -216,7 +218,7 @@ describe("DaoModule", async () => {
 
             expect(
                 await module.questionStates(questionId)
-            ).to.be.deep.equals(BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+            ).to.be.deep.equals(INVALIDATED_STATE);
         })
 
         it("marks known question id as invalid", async () => {
@@ -240,7 +242,7 @@ describe("DaoModule", async () => {
 
             expect(
                 await module.questionStates(questionId)
-            ).to.be.deep.equals(BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+            ).to.be.deep.equals(INVALIDATED_STATE);
         })
     })
 
@@ -364,7 +366,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
             const resultForCalldata = oracle.interface.encodeFunctionData("resultFor", [previousQuestionId])
-            await mock.givenCalldataReturnUint(resultForCalldata, "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+            await mock.givenCalldataReturnUint(resultForCalldata, INVALIDATED_STATE)
 
             await expect(
                 module.addProposalWithNonce(id, [txHash], 1)
@@ -382,6 +384,37 @@ describe("DaoModule", async () => {
             expect(
                 (await mock.callStatic.invocationCount()).toNumber()
             ).to.be.equals(1);
+        })
+
+        it("does not create proposal if previous nonce was internally invalidated", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionIdNonce0 = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionIdNonce1 = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionIdNonce0)
+            const proposalParameters = [id, [txHash]]
+            await module.addProposal(...proposalParameters)
+
+            const markAsInvalidCalldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionIdNonce0])
+            await executor.exec(module.address, 0, markAsInvalidCalldata);
+            expect(
+                await module.questionStates(questionIdNonce0)
+            ).to.deep.equal(INVALIDATED_STATE)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionIdNonce1)
+            await expect(
+                module.addProposalWithNonce(...proposalParameters, 1)
+            ).to.be.revertedWith("This proposal has been marked as invalid")
+
+            expect(
+                await module.questionStates(questionIdNonce1)
+            ).to.deep.equal(ethers.constants.Zero)
         })
     })
 
