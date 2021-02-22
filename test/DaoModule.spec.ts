@@ -513,7 +513,7 @@ describe("DaoModule", async () => {
             await module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
 
             expect(
-                await module.executedPropsalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(true)
         })
 
@@ -587,7 +587,7 @@ describe("DaoModule", async () => {
                 await module.questionStates(questionId)
             ).to.be.deep.equals(BigNumber.from(1))
             expect(
-                await module.executedPropsalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(true)
 
             expect(
@@ -646,7 +646,7 @@ describe("DaoModule", async () => {
             await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
 
             expect(
-                await module.executedPropsalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx1Hash)
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx1Hash)
             ).to.be.equals(true)
 
             const execTransaction1FromModuleCalldata = executor.interface.encodeFunctionData(
@@ -660,7 +660,7 @@ describe("DaoModule", async () => {
             await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
 
             expect(
-                await module.executedPropsalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
             ).to.be.equals(true)
             const execTransaction2FromModuleCalldata = executor.interface.encodeFunctionData(
                 "execTransactionFromModule",
@@ -699,7 +699,7 @@ describe("DaoModule", async () => {
             await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
 
             expect(
-                await module.executedPropsalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx1Hash)
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx1Hash)
             ).to.be.equals(true)
 
             const execTransactionFromModuleCalldata = executor.interface.encodeFunctionData(
@@ -713,7 +713,7 @@ describe("DaoModule", async () => {
             await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
 
             expect(
-                await module.executedPropsalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
             ).to.be.equals(true)
             expect(
                 (await mock.callStatic.invocationCountForCalldata(execTransactionFromModuleCalldata)).toNumber()
