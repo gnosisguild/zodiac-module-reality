@@ -46,7 +46,7 @@ contract DaoModule {
     address public questionArbitrator;
     uint256 public minimumBond;
     mapping(bytes32 => uint256) public questionStates;
-    mapping(bytes32 => mapping(bytes32 => bool)) public executedPropsalTransactions;
+    mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
 
     constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint256 bond, uint256 templateId) {
         require(timeout > 0, "Timeout has to be greater 0");
@@ -144,9 +144,9 @@ contract DaoModule {
         // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
-        require(txIndex == 0 || executedPropsalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
-        require(!executedPropsalTransactions[questionHash][txHash], "Cannot execute transaction again");
-        executedPropsalTransactions[questionHash][txHash] = true;
+        require(txIndex == 0 || executedProposalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
+        require(!executedProposalTransactions[questionHash][txHash], "Cannot execute transaction again");
+        executedProposalTransactions[questionHash][txHash] = true;
 
         executor.execTransactionFromModule(to, value, data, operation);
     }
