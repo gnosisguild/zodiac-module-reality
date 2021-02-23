@@ -150,6 +150,7 @@ contract DaoModule {
     /// @dev Executes the transactions of a proposal via the executor if accepted
     /// @param questionId Id of the question that confirms that the proposal was accepted
     /// @param proposalId Id that should identify the proposal uniquely
+    /// @param txIndex Index of the transaction hash in txHashes
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param to Target of the transaction that should be executed
     /// @param value Wei value of the transaction that should be executed

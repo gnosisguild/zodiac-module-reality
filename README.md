@@ -2,12 +2,14 @@
 [![Build Status](https://github.com/gnosis/dao-module/workflows/dao-module/badge.svg?branch=main)](https://github.com/gnosis/dao-module/actions)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/dao-module/badge.svg?branch=main)](https://coveralls.io/github/gnosis/dao-module)
 
-This module allow to execute transactions that have been approved via a Realitio question for execution. The question asked on Realitio consists of a proposal id (e.g. an ipfs hash) that can be used to provide more information for the transactions to be executed. And of an array of EIP-712 based transaction hashes that represent the transactions that should be executed.
+This module allow to execute transactions that have been approved via a Realitio question for execution. The question asked on Realitio consists of a proposal id (e.g. an ipfs hash) that can be used to provide more information for the transactions to be executed. And of an array of EIP-712 based transaction hashes that represent the transactions that should be executed. 
 
-The transactions are executed via an immutable executor. 
+These two components (`proposalId` and `txHashes`) uniquely identify a question on the module. While it is possible to ask the same question with different Realitio question parameters, it is only possible to execute transaction related to a specifiy question once.
+
+Once the question on Realitio has confirmed that the transactions should be are executed, they are submitted to the immutable executor defined in the module. 
 
 ### Features
-- The question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
+- The Realitio question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
 - A `minimum bond` can be set that is required to be stacked on a Realitio answer before the transactions can be executed
 - Question ids can be marked invalid by the `executor` using `markQuestionIdAsInvalid` preventing the execution of the transactions related to that specific question id
 - A `cooldown` can be specified representing the minimum time that needs to pass after the Realitio question has been answered before the transactions can be executed
