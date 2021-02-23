@@ -316,7 +316,7 @@ describe("DaoModule", async () => {
 
             await expect(
                 module.addProposal(id, [txHash])
-            ).to.be.revertedWith("New question state is not unset");
+            ).to.be.revertedWith("Question id has already been used");
         })
 
         it("calls askQuestion with correct data", async () => {
@@ -431,7 +431,7 @@ describe("DaoModule", async () => {
 
             await expect(
                 module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            ).to.be.revertedWith("No question hash set for provided id");
+            ).to.be.revertedWith("No question hash set for provided question id");
         })
 
         it("throws if proposal has been invalidated", async () => {

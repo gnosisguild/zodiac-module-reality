@@ -119,7 +119,7 @@ contract DaoModule {
         bytes32 expectedQuestionId = getQuestionId(
             templateId, question, arbitrator, timeout, 0, nonce
         );
-        require(questionHashes[expectedQuestionId] == bytes32(0), "New question state is not unset");
+        require(questionHashes[expectedQuestionId] == bytes32(0), "Question id has already been used");
         // Set the question hash for this quesion id
         questionHashes[expectedQuestionId] = keccak256(bytes(question));
         // Ask the question with a starting time of 0, so that it can be immediately answered
@@ -160,7 +160,7 @@ contract DaoModule {
     function executeProposalWithIndex(bytes32 questionId, string memory proposalId, uint256 txIndex, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
         // Question hash needs to set to be elligable for execution
         bytes32 questionHash = questionHashes[questionId];
-        require(questionHash != bytes32(0), "No question hash set for provided id");
+        require(questionHash != bytes32(0), "No question hash set for provided question id");
         require(questionHash != INVALIDATED, "Question has been invalidated");
 
         bytes32 txHash = getTransactionHash(to, value, data, operation, nonce);
