@@ -1,4 +1,6 @@
 # Snapshot DAO Module
+[![Build Status](https://github.com/gnosis/dao-module/workflows/dao-module/badge.svg?branch=development)](https://github.com/gnosis/dao-module/actions)
+[![Coverage Status](https://coveralls.io/repos/github/gnosis/dao-module/badge.svg?branch=main)](https://coveralls.io/github/gnosis/dao-module)
 
 ### Flow (Proposal)
 - Question for Snapshot vote is posted on Realitio
