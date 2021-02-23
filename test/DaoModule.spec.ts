@@ -673,7 +673,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await nextBlockTime(hre, block.timestamp + 24)
             await expect(
-                module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
+                module.executeProposalWithIndex(questionId, id, 1, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
             ).to.be.revertedWith("Previous transaction not executed yet");
         })
 
@@ -710,7 +710,7 @@ describe("DaoModule", async () => {
                 (await mock.callStatic.invocationCountForCalldata(execTransaction1FromModuleCalldata)).toNumber()
             ).to.be.equals(1)
 
-            await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
+            await module.executeProposalWithIndex(questionId, id, 1, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
@@ -763,7 +763,7 @@ describe("DaoModule", async () => {
                 (await mock.callStatic.invocationCountForCalldata(execTransactionFromModuleCalldata)).toNumber()
             ).to.be.equals(1)
 
-            await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
+            await module.executeProposalWithIndex(questionId, id, 1, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
