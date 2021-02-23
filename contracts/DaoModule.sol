@@ -128,7 +128,7 @@ contract DaoModule {
         emit ProposalQuestionCreated(questionId, proposalId);
     }
 
-    function markProposalAsInvalid(bytes32 questionId) public {
+    function markQuestionIdAsInvalid(bytes32 questionId) public {
         require(msg.sender == address(executor), "Not authorized to invalidate proposal");
         questionHashes[questionId] = INVALIDATED;
     }

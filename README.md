@@ -1,25 +1,50 @@
-# Snapshot DAO Module
+# DAO Module
 [![Build Status](https://github.com/gnosis/dao-module/workflows/dao-module/badge.svg?branch=main)](https://github.com/gnosis/dao-module/actions)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/dao-module/badge.svg?branch=main)](https://coveralls.io/github/gnosis/dao-module)
 
-### Flow (Proposal)
-- Question for Snapshot vote is posted on Realitio
-  - Question contains Snapshot ID
-  - Question contains array of module transactions
-  - Format: `<SnapshotId>us<Hash of module transactions>`
-  - Template: `{"title": "Did the Snapshop proposal with the id %s pass the execution of the array of Module transactions that have the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions.", "lang": "en", "type": "bool"}`
-  - Hashing: EIP-712 hash for each module transaction, then `keccak(abi.encodePacked(transactionHashes))`
-- Answer is posted to Realitio 
-  - Module expects `bool` as answer
-- Module transaction can be triggered after answer has been finalized
-  - Add additional delay
+This module allow to execute transactions that have been approved via a Realitio question for execution. The question asked on Realitio consists of a proposal id (e.g. an ipfs hash) that can be used to provide more information for the transactions to be executed. And of an array of EIP-712 based transaction hashes that represent the transactions that should be executed.
 
-### Notes
+The transactions are executed via an immutable executor. 
 
-- Realitio
-  - https://www.npmjs.com/package/@realitio/realitio-contracts
-  - https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
-  - Rinkeby: `0x3D00D77ee771405628a4bA4913175EcC095538da`
+### Features
+- The question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
+- A `minimum bond` can be set that is required to be stacked on a Realitio answer before the transactions can be executed
+- Question ids can be marked invalid by the `executor` using `markQuestionIdAsInvalid` preventing the execution of the transactions related to that specific question id
+- A `cooldown` can be specified representing the minimum time that needs to pass after the Realitio question has been answered before the transactions can be executed
+
+### Flow
+- Create question on Realitio via the `addProposal` method of this module.
+- Question needs to be answered on Realitio with yes (1) to approve it for execution.
+- Once the has a result and the `cooldown` period has passed the transaction(s) can be execute via `executeProposal`
+
+### EIP-712 details
+
+[EIP-712](https://github.com/Ethereum/EIPs/blob/master/EIPS/eip-712.md) is used to generate the hashes for the transactions to be executed. The following EIP-712 domain and types are used
+
+#### Domain
+
+```
+{
+  EIP712Domain: [
+    { type: "uint256", name: "chainId" },
+    { type: "address", name: "verifyingContract" }
+  ]
+}
+```
+
+#### TransactionType
+
+```
+{
+  Transaction: [
+    { type: "address", name: "to" },
+    { type: "uint256", name: "value" },
+    { type: "bytes", name: "data" },
+    { type: "uint8", name: "operation" },
+    { type: "uint256", name: "nonce" }
+  ]
+}
+```
 
 ### Example
 
@@ -29,3 +54,9 @@
 - `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
 - `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`
+
+### Notes
+
+- Realitio contracts can be found via
+  - https://www.npmjs.com/package/@realitio/realitio-contracts
+  - https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol

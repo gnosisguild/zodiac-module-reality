@@ -197,12 +197,12 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe("markProposalAsInvalid", async () => {
+    describe("markQuestionIdAsInvalid", async () => {
         it("throws if not authorized", async () => {
             const { module } = await setupTestWithTestExecutor();
             const questionId = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
-                module.markProposalAsInvalid(questionId)
+                module.markQuestionIdAsInvalid(questionId)
             ).to.be.revertedWith("Not authorized to invalidate proposal");
         })
 
@@ -214,7 +214,7 @@ describe("DaoModule", async () => {
                 (await module.questionHashes(questionId))
             ).to.be.equals(ZERO_STATE);
 
-            const calldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionId])
+            const calldata = module.interface.encodeFunctionData("markQuestionIdAsInvalid", [questionId])
             await executor.exec(module.address, 0, calldata)
 
             expect(
@@ -238,7 +238,7 @@ describe("DaoModule", async () => {
                 await module.questionHashes(questionId)
             ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
 
-            const calldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionId])
+            const calldata = module.interface.encodeFunctionData("markQuestionIdAsInvalid", [questionId])
             await executor.exec(module.address, 0, calldata)
 
             expect(
@@ -308,11 +308,11 @@ describe("DaoModule", async () => {
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
 
-            const markProposalAsInvalid = module.interface.encodeFunctionData(
-                "markProposalAsInvalid",
+            const markQuestionIdAsInvalid = module.interface.encodeFunctionData(
+                "markQuestionIdAsInvalid",
                 [questionId]
             );
-            await executor.exec(module.address, 0, markProposalAsInvalid);
+            await executor.exec(module.address, 0, markQuestionIdAsInvalid);
 
             await expect(
                 module.addProposal(id, [txHash])
@@ -400,7 +400,7 @@ describe("DaoModule", async () => {
             const proposalParameters = [id, [txHash]]
             await module.addProposal(...proposalParameters)
 
-            const markAsInvalidCalldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionIdNonce0])
+            const markAsInvalidCalldata = module.interface.encodeFunctionData("markQuestionIdAsInvalid", [questionIdNonce0])
             await executor.exec(module.address, 0, markAsInvalidCalldata);
             expect(
                 await module.questionHashes(questionIdNonce0)
@@ -446,11 +446,11 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             await module.addProposal(id, [txHash])
 
-            const markProposalAsInvalid = module.interface.encodeFunctionData(
-                "markProposalAsInvalid",
+            const markQuestionIdAsInvalid = module.interface.encodeFunctionData(
+                "markQuestionIdAsInvalid",
                 [questionId]
             )
-            await executor.exec(module.address, 0, markProposalAsInvalid)
+            await executor.exec(module.address, 0, markQuestionIdAsInvalid)
 
             await expect(
                 module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
