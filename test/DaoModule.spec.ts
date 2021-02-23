@@ -473,6 +473,25 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Unexpected transaction hash");
         })
 
+        it.only("throws if tx data doesn't belong to questionId", async () => {
+            const { mock, module, oracle } = await setupTestWithMockExecutor();
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, []);
+            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await module.addProposal(id, [])
+
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+
+            await expect(
+                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
+            ).to.be.revertedWith("Unexpected question hash");
+        })
+
         it("throws if tx was not approved", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
