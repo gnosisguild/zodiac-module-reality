@@ -30,7 +30,8 @@ const EIP712_TYPES = {
     ]
 }
 
-const INVALIDATED_STATE = BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+const INVALIDATED_STATE = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 describe("DaoModule", async () => {
 
@@ -210,14 +211,14 @@ describe("DaoModule", async () => {
 
             const questionId = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             expect(
-                (await module.questionStates(questionId)).toNumber()
-            ).to.be.equals(0);
+                (await module.questionHashes(questionId))
+            ).to.be.equals(ZERO_STATE);
 
             const calldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionId])
             await executor.exec(module.address, 0, calldata)
 
             expect(
-                await module.questionStates(questionId)
+                await module.questionHashes(questionId)
             ).to.be.deep.equals(INVALIDATED_STATE);
         })
 
@@ -234,14 +235,14 @@ describe("DaoModule", async () => {
             ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
 
             expect(
-                await module.questionStates(questionId)
-            ).to.be.deep.equals(BigNumber.from(1))
+                await module.questionHashes(questionId)
+            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
 
             const calldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionId])
             await executor.exec(module.address, 0, calldata)
 
             expect(
-                await module.questionStates(questionId)
+                await module.questionHashes(questionId)
             ).to.be.deep.equals(INVALIDATED_STATE);
         })
     })
@@ -332,8 +333,8 @@ describe("DaoModule", async () => {
             ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
 
             expect(
-                await module.questionStates(questionId)
-            ).to.be.deep.equals(BigNumber.from(1))
+                await module.questionHashes(questionId)
+            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
 
             const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 0])
             expect(
@@ -373,8 +374,8 @@ describe("DaoModule", async () => {
             ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
 
             expect(
-                await module.questionStates(questionId)
-            ).to.be.deep.equals(BigNumber.from(1))
+                await module.questionHashes(questionId)
+            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
 
             const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 1])
             expect(
@@ -402,7 +403,7 @@ describe("DaoModule", async () => {
             const markAsInvalidCalldata = module.interface.encodeFunctionData("markProposalAsInvalid", [questionIdNonce0])
             await executor.exec(module.address, 0, markAsInvalidCalldata);
             expect(
-                await module.questionStates(questionIdNonce0)
+                await module.questionHashes(questionIdNonce0)
             ).to.deep.equal(INVALIDATED_STATE)
 
             await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
@@ -413,13 +414,13 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("This proposal has been marked as invalid")
 
             expect(
-                await module.questionStates(questionIdNonce1)
-            ).to.deep.equal(ethers.constants.Zero)
+                await module.questionHashes(questionIdNonce1)
+            ).to.deep.equal(ZERO_STATE)
         })
     })
 
     describe("executeProposal", async () => {
-        it("throws if previous nonce was not invalid", async () => {
+        it("throws if question hash was not set", async () => {
             const { mock, module } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
@@ -430,7 +431,7 @@ describe("DaoModule", async () => {
 
             await expect(
                 module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            ).to.be.revertedWith("Invalid question state for provided id");
+            ).to.be.revertedWith("No question hash set for provided id");
         })
 
         it("throws if proposal has been invalidated", async () => {
@@ -453,7 +454,7 @@ describe("DaoModule", async () => {
 
             await expect(
                 module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            ).to.be.revertedWith("Invalid question state for provided id");
+            ).to.be.revertedWith("Question has been invalidated");
         })
 
         it("throws if tx data doesn't belong to proposal", async () => {
@@ -473,7 +474,7 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Unexpected transaction hash");
         })
 
-        it.only("throws if tx data doesn't belong to questionId", async () => {
+        it("throws if tx data doesn't belong to questionId", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
@@ -636,8 +637,8 @@ describe("DaoModule", async () => {
             await module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
 
             expect(
-                await module.questionStates(questionId)
-            ).to.be.deep.equals(BigNumber.from(1))
+                await module.questionHashes(questionId)
+            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(true)
