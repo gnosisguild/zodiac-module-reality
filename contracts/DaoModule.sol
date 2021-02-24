@@ -46,8 +46,8 @@ contract DaoModule {
     uint32 public questionCooldown;
     address public questionArbitrator;
     uint256 public minimumBond;
-    // Mapping of question id to question hash. Special case: INVALIDATED for question ids that have been invalidated
-    mapping(bytes32 => bytes32) public questionHashes;
+    // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
+    mapping(bytes32 => bytes32) public questionIds;
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
 
@@ -107,34 +107,42 @@ contract DaoModule {
         address arbitrator = questionArbitrator;
         // We generate the question string used for the oracle
         string memory question = buildQuestion(proposalId, txHashes);
+        bytes32 questionHash = keccak256(bytes(question));
         if (nonce > 0) {
             // Previous nonce must have been invalidated by the oracle.
             // However, if the proposal was internally invalidated, it should not be possible to ask it again.
             bytes32 invalidatedQuestionId = getQuestionId(
                 templateId, question, arbitrator, timeout, 0, nonce - 1
             );
-            require(questionHashes[invalidatedQuestionId] != INVALIDATED, "This proposal has been marked as invalid");
-            require(oracle.resultFor(invalidatedQuestionId) == INVALIDATED, "Previous question was not invalidated");
+            bytes32 currentQuestionId = questionIds[questionHash];
+            require(currentQuestionId != INVALIDATED, "This proposal has been marked as invalid");
+            require(currentQuestionId == invalidatedQuestionId, "Unexpected existing question id for this proposal");
+            require(oracle.resultFor(invalidatedQuestionId) == INVALIDATED, "Previous proposal was not invalidated");
+        } else {
+            require(questionIds[questionHash] == bytes32(0), "Proposal has already been submitted");
         }
         bytes32 expectedQuestionId = getQuestionId(
             templateId, question, arbitrator, timeout, 0, nonce
         );
-        require(questionHashes[expectedQuestionId] == bytes32(0), "Question id has already been used");
         // Set the question hash for this quesion id
-        questionHashes[expectedQuestionId] = keccak256(bytes(question));
+        questionIds[questionHash] = expectedQuestionId;
         // Ask the question with a starting time of 0, so that it can be immediately answered
         bytes32 questionId = oracle.askQuestion(templateId, question, arbitrator, timeout, 0, nonce);
         require(expectedQuestionId == questionId, "Unexpected question id");
         emit ProposalQuestionCreated(questionId, proposalId);
     }
 
-    function markQuestionIdAsInvalid(bytes32 questionId) public {
+    /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
+    /// @param proposalId Id that should identify the proposal uniquely
+    /// @param txHashes EIP-712 hashes of the transactions that should be executed
+    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) public {
         require(msg.sender == address(executor), "Not authorized to invalidate proposal");
-        questionHashes[questionId] = INVALIDATED;
+        string memory question = buildQuestion(proposalId, txHashes);
+        bytes32 questionHash = keccak256(bytes(question));
+        questionIds[questionHash] = INVALIDATED;
     }
 
     /// @dev Executes the transactions of a proposal via the executor if accepted
-    /// @param questionId Id of the question that confirms that the proposal was accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param to Target of the transaction that should be executed
@@ -143,25 +151,27 @@ contract DaoModule {
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
     /// @param nonce Nonce  of the transaction that should be executed
     /// @notice The txIndex used by this function is always 0
-    function executeProposal(bytes32 questionId, string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
-        executeProposalWithIndex(questionId, proposalId, 0, txHashes, to, value, data, operation, nonce);
+    function executeProposal(string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
+        executeProposalWithIndex(proposalId, txHashes, 0, to, value, data, operation, nonce);
     }
 
     /// @dev Executes the transactions of a proposal via the executor if accepted
-    /// @param questionId Id of the question that confirms that the proposal was accepted
     /// @param proposalId Id that should identify the proposal uniquely
-    /// @param txIndex Index of the transaction hash in txHashes
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
+    /// @param txIndex Index of the transaction hash in txHashes
     /// @param to Target of the transaction that should be executed
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
     /// @param nonce Nonce  of the transaction that should be executed
-    function executeProposalWithIndex(bytes32 questionId, string memory proposalId, uint256 txIndex, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
+    function executeProposalWithIndex(string memory proposalId, bytes32[] memory txHashes, uint256 txIndex, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
+        // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
+        bytes32 questionHash = keccak256(bytes(buildQuestion(proposalId, txHashes)));
+        // Lookup question id for this proposal
+        bytes32 questionId = questionIds[questionHash];
         // Question hash needs to set to be eligible for execution
-        bytes32 questionHash = questionHashes[questionId];
-        require(questionHash != bytes32(0), "No question hash set for provided question id");
-        require(questionHash != INVALIDATED, "Question has been invalidated");
+        require(questionId != bytes32(0), "No question id set for provided proposal");
+        require(questionId != INVALIDATED, "Proposal has been invalidated");
 
         bytes32 txHash = getTransactionHash(to, value, data, operation, nonce);
         require(txHashes[txIndex] == txHash, "Unexpected transaction hash");
@@ -172,11 +182,6 @@ contract DaoModule {
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
         require(finalizeTs + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
-
-        // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
-        bytes32 submittedQuestionHash = keccak256(bytes(buildQuestion(proposalId, txHashes)));
-        // Check that the question hash stored for the question id is the same as generated by the provided data
-        require(questionHash == submittedQuestionHash, "Unexpected question hash");
         // Check this is either the first transaction in the list or that the previous question was already approved
         require(txIndex == 0 || executedProposalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         // Check that this question was not executed yet

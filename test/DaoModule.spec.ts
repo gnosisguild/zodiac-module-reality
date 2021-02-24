@@ -197,28 +197,32 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe("markQuestionIdAsInvalid", async () => {
+    describe("markProposalAsInvalid", async () => {
         it("throws if not authorized", async () => {
             const { module } = await setupTestWithTestExecutor();
-            const questionId = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+            const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
-                module.markQuestionIdAsInvalid(questionId)
+                module.markProposalAsInvalid(randomHash, [randomHash])
             ).to.be.revertedWith("Not authorized to invalidate proposal");
         })
 
         it("marks unknown question id as invalid", async () => {
             const { module, executor } = await setupTestWithTestExecutor();
 
-            const questionId = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
             expect(
-                (await module.questionHashes(questionId))
+                await module.questionIds(questionHash)
             ).to.be.equals(ZERO_STATE);
 
-            const calldata = module.interface.encodeFunctionData("markQuestionIdAsInvalid", [questionId])
+            const calldata = module.interface.encodeFunctionData("markProposalAsInvalid", [id, [txHash]])
             await executor.exec(module.address, 0, calldata)
 
             expect(
-                await module.questionHashes(questionId)
+                await module.questionIds(questionHash)
             ).to.be.deep.equals(INVALIDATED_STATE);
         })
 
@@ -228,6 +232,7 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
 
             await expect(
@@ -235,14 +240,14 @@ describe("DaoModule", async () => {
             ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
 
             expect(
-                await module.questionHashes(questionId)
-            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
 
-            const calldata = module.interface.encodeFunctionData("markQuestionIdAsInvalid", [questionId])
+            const calldata = module.interface.encodeFunctionData("markProposalAsInvalid", [id, [txHash]])
             await executor.exec(module.address, 0, calldata)
 
             expect(
-                await module.questionHashes(questionId)
+                await module.questionIds(questionHash)
             ).to.be.deep.equals(INVALIDATED_STATE);
         })
     })
@@ -308,15 +313,53 @@ describe("DaoModule", async () => {
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
 
-            const markQuestionIdAsInvalid = module.interface.encodeFunctionData(
-                "markQuestionIdAsInvalid",
-                [questionId]
+            const markInvalid = module.interface.encodeFunctionData(
+                "markProposalAsInvalid",
+                [id, [txHash]]
             );
-            await executor.exec(module.address, 0, markQuestionIdAsInvalid);
+            await executor.exec(module.address, 0, markInvalid);
 
             await expect(
                 module.addProposal(id, [txHash])
-            ).to.be.revertedWith("Question id has already been used");
+            ).to.be.revertedWith("Proposal has already been submitted");
+        })
+
+        it("throws if proposal was already submitted", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
+
+            await module.addProposal(id, [txHash])
+
+            await expect(
+                module.addProposal(id, [txHash])
+            ).to.be.revertedWith("Proposal has already been submitted");
+        })
+
+        it("throws if proposal was already submitted when question params were different", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
+
+            await module.addProposal(id, [txHash])
+        
+            const updateQuestionTimeout = module.interface.encodeFunctionData(
+                "setQuestionTimeout",
+                [31]
+            )
+            await executor.exec(module.address, 0, updateQuestionTimeout)
+
+            await expect(
+                module.addProposal(id, [txHash])
+            ).to.be.revertedWith("Proposal has already been submitted");
         })
 
         it("calls askQuestion with correct data", async () => {
@@ -326,6 +369,7 @@ describe("DaoModule", async () => {
 
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
 
             await expect(
@@ -333,8 +377,8 @@ describe("DaoModule", async () => {
             ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
 
             expect(
-                await module.questionHashes(questionId)
-            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
 
             const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 0])
             expect(
@@ -348,16 +392,21 @@ describe("DaoModule", async () => {
 
     describe("addProposalWithNonce", async () => {
         it("throws if previous nonce was not invalid", async () => {
-            const { module, mock, oracle } = await setupTestWithTestExecutor();
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), 42)
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+            const question = await module.buildQuestion(id, [txHash]);
+            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            await module.addProposal(id, [txHash])
+
             await expect(
                 module.addProposalWithNonce(id, [txHash], 1)
-            ).to.be.revertedWith("Previous question was not invalidated");
+            ).to.be.revertedWith("Previous proposal was not invalidated");
         })
 
-        it("calls askQuestion with correct data", async () => {
+        it("throws if previous question doesn't exist", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
@@ -371,11 +420,32 @@ describe("DaoModule", async () => {
 
             await expect(
                 module.addProposalWithNonce(id, [txHash], 1)
+            ).to.be.revertedWith("Unexpected existing question id for this proposal");
+        })
+
+        it("calls askQuestion with correct data", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            await module.addProposal(id, [txHash])
+            
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            const resultForCalldata = oracle.interface.encodeFunctionData("resultFor", [previousQuestionId])
+            await mock.givenCalldataReturnUint(resultForCalldata, INVALIDATED_STATE)
+
+            await expect(
+                module.addProposalWithNonce(id, [txHash], 1)
             ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
 
             expect(
-                await module.questionHashes(questionId)
-            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
 
             const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 1])
             expect(
@@ -384,7 +454,7 @@ describe("DaoModule", async () => {
 
             expect(
                 (await mock.callStatic.invocationCount()).toNumber()
-            ).to.be.equals(1);
+            ).to.be.equals(2);
         })
 
         it("does not create proposal if previous nonce was internally invalidated", async () => {
@@ -393,6 +463,7 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
             const questionIdNonce0 = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
             const questionIdNonce1 = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
 
@@ -400,10 +471,10 @@ describe("DaoModule", async () => {
             const proposalParameters = [id, [txHash]]
             await module.addProposal(...proposalParameters)
 
-            const markAsInvalidCalldata = module.interface.encodeFunctionData("markQuestionIdAsInvalid", [questionIdNonce0])
+            const markAsInvalidCalldata = module.interface.encodeFunctionData("markProposalAsInvalid", [...proposalParameters])
             await executor.exec(module.address, 0, markAsInvalidCalldata);
             expect(
-                await module.questionHashes(questionIdNonce0)
+                await module.questionIds(questionHash)
             ).to.deep.equal(INVALIDATED_STATE)
 
             await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
@@ -412,26 +483,20 @@ describe("DaoModule", async () => {
             await expect(
                 module.addProposalWithNonce(...proposalParameters, 1)
             ).to.be.revertedWith("This proposal has been marked as invalid")
-
-            expect(
-                await module.questionHashes(questionIdNonce1)
-            ).to.deep.equal(ZERO_STATE)
         })
     })
 
     describe("executeProposal", async () => {
-        it("throws if question hash was not set", async () => {
-            const { mock, module } = await setupTestWithMockExecutor();
+        it("throws if question id was not set", async () => {
+            const { module } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
             const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            ).to.be.revertedWith("No question hash set for provided question id");
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            ).to.be.revertedWith("No question id set for provided proposal");
         })
 
         it("throws if proposal has been invalidated", async () => {
@@ -446,15 +511,48 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             await module.addProposal(id, [txHash])
 
-            const markQuestionIdAsInvalid = module.interface.encodeFunctionData(
-                "markQuestionIdAsInvalid",
-                [questionId]
+            const markInvalid = module.interface.encodeFunctionData(
+                "markProposalAsInvalid",
+                [id, [txHash]]
             )
-            await executor.exec(module.address, 0, markQuestionIdAsInvalid)
+            await executor.exec(module.address, 0, markInvalid)
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            ).to.be.revertedWith("Question has been invalidated");
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            ).to.be.revertedWith("Proposal has been invalidated");
+        })
+
+        it("Proposal stays invalid after question param updates", async () => {
+            const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await module.addProposal(id, [txHash])
+
+            const markInvalid = module.interface.encodeFunctionData(
+                "markProposalAsInvalid",
+                [id, [txHash]]
+            )
+            await executor.exec(module.address, 0, markInvalid)
+
+            await expect(
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            ).to.be.revertedWith("Proposal has been invalidated");
+
+            const updateQuestionTimeout = module.interface.encodeFunctionData(
+                "setQuestionTimeout",
+                [31]
+            )
+            await executor.exec(module.address, 0, updateQuestionTimeout)
+
+            await expect(
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            ).to.be.revertedWith("Proposal has been invalidated");
         })
 
         it("throws if tx data doesn't belong to proposal", async () => {
@@ -470,7 +568,7 @@ describe("DaoModule", async () => {
             await module.addProposal(id, [txHash])
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 1)
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 1)
             ).to.be.revertedWith("Unexpected transaction hash");
         })
 
@@ -489,8 +587,8 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
-            ).to.be.revertedWith("Unexpected question hash");
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
+            ).to.be.revertedWith("No question id set for provided proposal");
         })
 
         it("throws if tx was not approved", async () => {
@@ -508,7 +606,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), false)
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
             ).to.be.revertedWith("Transaction was not approved");
         })
 
@@ -533,7 +631,7 @@ describe("DaoModule", async () => {
             await executor.exec(module.address, 0, setMinimumBond)
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             ).to.be.revertedWith("Bond on question not high enough");
         })
 
@@ -563,7 +661,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
 
             await nextBlockTime(hre, block.timestamp + 24)
-            await module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
+            await module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
@@ -587,7 +685,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
 
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
             ).to.be.revertedWith("Wait for additional cooldown");
         })
 
@@ -606,9 +704,9 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await nextBlockTime(hre, block.timestamp + 24)
-            await module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
+            await module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
             ).to.be.revertedWith("Cannot execute transaction again");
         })
 
@@ -630,15 +728,16 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await nextBlockTime(hre, block.timestamp + 23)
             await expect(
-                module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
             ).to.be.revertedWith("Wait for additional cooldown");
 
             await nextBlockTime(hre, block.timestamp + 24)
-            await module.executeProposal(questionId, id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0);
+            await module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation, 0)
 
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
             expect(
-                await module.questionHashes(questionId)
-            ).to.be.deep.equals(ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question)))
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(true)
@@ -673,7 +772,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await nextBlockTime(hre, block.timestamp + 24)
             await expect(
-                module.executeProposalWithIndex(questionId, id, 1, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
+                module.executeProposalWithIndex(id, [tx1Hash, tx2Hash], 1, tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
             ).to.be.revertedWith("Previous transaction not executed yet");
         })
 
@@ -696,7 +795,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await nextBlockTime(hre, block.timestamp + 24)
 
-            await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
+            await module.executeProposal(id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx1Hash)
@@ -710,7 +809,7 @@ describe("DaoModule", async () => {
                 (await mock.callStatic.invocationCountForCalldata(execTransaction1FromModuleCalldata)).toNumber()
             ).to.be.equals(1)
 
-            await module.executeProposalWithIndex(questionId, id, 1, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
+            await module.executeProposalWithIndex(id, [tx1Hash, tx2Hash], 1, tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
@@ -749,7 +848,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await nextBlockTime(hre, block.timestamp + 24)
 
-            await module.executeProposal(questionId, id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
+            await module.executeProposal(id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx1Hash)
@@ -763,7 +862,7 @@ describe("DaoModule", async () => {
                 (await mock.callStatic.invocationCountForCalldata(execTransactionFromModuleCalldata)).toNumber()
             ).to.be.equals(1)
 
-            await module.executeProposalWithIndex(questionId, id, 1, [tx1Hash, tx2Hash], tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
+            await module.executeProposalWithIndex(id, [tx1Hash, tx2Hash], 1, tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
 
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), tx2Hash)
