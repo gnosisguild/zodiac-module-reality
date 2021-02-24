@@ -46,7 +46,7 @@ contract DaoModule {
     uint32 public questionCooldown;
     address public questionArbitrator;
     uint256 public minimumBond;
-    // Mapping of question question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
+    // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
     mapping(bytes32 => bytes32) public questionIds;
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
@@ -132,6 +132,9 @@ contract DaoModule {
         emit ProposalQuestionCreated(questionId, proposalId);
     }
 
+    /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
+    /// @param proposalId Id that should identify the proposal uniquely
+    /// @param txHashes EIP-712 hashes of the transactions that should be executed
     function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) public {
         require(msg.sender == address(executor), "Not authorized to invalidate proposal");
         string memory question = buildQuestion(proposalId, txHashes);
