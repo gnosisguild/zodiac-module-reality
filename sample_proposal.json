@@ -5,8 +5,7 @@
             "to": "0x05c85Ab5B09Eb8A55020d72daf6091E04e264af9",
             "value": "42",
             "data": "0x",
-            "operation": 0,
-            "nonce": 0
+            "operation": 0
         }
     ]
 }

@@ -20,6 +20,19 @@ Once the question on Realitio has confirmed that the transactions should be exec
 - Question needs to be answered on Realitio with yes (1) to approve it for execution.
 - Once the has a result and the `cooldown` period has passed the transaction(s) can be execute via `executeProposal`
 
+### Definitions
+
+#### Transaction nonce or index
+
+The `nonce` of a transaction makes it possible to have two transactions with the same `to`, `value` and `data` but still generate a different transaction hash. This is important as all hashes in the `txHashes` array should be unique. To make sure that this is the case the module will always use the `index` of the transaction hash inside the `txHashes` array as a nonce. So the first transction to be executed has the `nonce` with the value `0`, the second with the value `1`, and so on.
+
+Therefore we can simplify it to the following statement:
+The `nonce` of a DAO module transaction is equals to the `index` of that transactions hash in the `txHashes` array.
+
+#### Proposal nonce
+
+There is the change that a question for a proposal is marked invalid on the oracle (e.g. when it is asked to early). In this case it should be possible to ask the question again. For this we need to be able to generate a new question id. For this it is possible to provide the next higher `nonce` compared to the last invalidated proposal. So in case the first proposal (with the default `nonce` of `0`) was marked invalid on the oracle, a new proposal can be submitted with the `nonce` of `1`.
+
 ### EIP-712 details
 
 [EIP-712](https://github.com/Ethereum/EIPs/blob/master/EIPS/eip-712.md) is used to generate the hashes for the transactions to be executed. The following EIP-712 domain and types are used
@@ -68,6 +81,7 @@ Once the question on Realitio has confirmed that the transactions should be exec
 
 #### Consistency
 - Check for duplicate tx hashes
+  - Note: Checking this naively (comparing all elements) is quite expensive. We require `n*(n-1)/2` loops and each loop is around 400 gas.
 - Use tx index as nonce to avoid duplication
 
 #### Gas usage
