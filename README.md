@@ -82,7 +82,8 @@ There is the change that a question for a proposal is marked invalid on the orac
 #### Consistency
 - Check for duplicate tx hashes
   - Note: Checking this naively (comparing all elements) is quite expensive. We require `n*(n-1)/2` loops and each loop is around 400 gas.
-- Use tx index as nonce to avoid duplication
+- Use tx index as nonce to avoid duplication :heavy_check_mark:
+- When the Realitio question params (e.g. `templateId`) change after a question has been marked invalid on the oracle. It will not be possible to try this question again with a higher nonce.
 
 #### Gas usage
 - When the `questionId` is `0` or `INVALIDATED` oracle.resultFor won't return 1, therefore the requires on the `questionId` could be removed
