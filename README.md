@@ -9,9 +9,10 @@ These two components (`proposalId` and `txHashes`) uniquely identify a question 
 Once the question on Realitio has confirmed that the transactions should be executed, they are submitted to the immutable executor defined in the module.
 
 ### Features
+- Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Realitio question that validates the execution of the connected transactions.
+- Proposals can be marked invalid by the `executor` using `markProposalInvalid` preventing the execution of the transactions related to that proposal
 - The Realitio question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
 - A `minimum bond` can be set that is required to be stacked on a Realitio answer before the transactions can be executed
-- Question ids can be marked invalid by the `executor` using `markQuestionIdAsInvalid` preventing the execution of the transactions related to that specific question id
 - A `cooldown` can be specified representing the minimum time that needs to pass after the Realitio question has been answered before the transactions can be executed
 
 ### Flow
