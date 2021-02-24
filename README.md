@@ -78,6 +78,10 @@ The reference oracle implementations are the Realitio contracts. These can be fo
 }
 ```
 
+### Solidity Compiler
+
+The contracts have been developed with [Solidity 0.8.0](https://github.com/ethereum/solidity/releases/tag/v0.8.0) in mind. This version of Solidity made all arithmetic checked by default, therefore eliminating the need for explicit overflow or underflow (or other arithmetic) checks.
+
 ### Example
 
 - `yarn build`
