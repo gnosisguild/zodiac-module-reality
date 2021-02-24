@@ -158,7 +158,7 @@ contract DaoModule {
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
     /// @param nonce Nonce  of the transaction that should be executed
     function executeProposalWithIndex(bytes32 questionId, string memory proposalId, uint256 txIndex, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
-        // Question hash needs to set to be elligable for execution
+        // Question hash needs to set to be eligible for execution
         bytes32 questionHash = questionHashes[questionId];
         require(questionHash != bytes32(0), "No question hash set for provided question id");
         require(questionHash != INVALIDATED, "Question has been invalidated");

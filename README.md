@@ -4,9 +4,9 @@
 
 This module allow to execute transactions that have been approved via a Realitio question for execution. The question asked on Realitio consists of a proposal id (e.g. an ipfs hash) that can be used to provide more information for the transactions to be executed. And of an array of EIP-712 based transaction hashes that represent the transactions that should be executed. 
 
-These two components (`proposalId` and `txHashes`) uniquely identify a question on the module. While it is possible to ask the same question with different Realitio question parameters, it is only possible to execute transaction related to a specifiy question once.
+These two components (`proposalId` and `txHashes`) uniquely identify a question on the module. While it is possible to ask the same question with different Realitio question parameters, it is only possible to execute transactions related to a specific question once.
 
-Once the question on Realitio has confirmed that the transactions should be are executed, they are submitted to the immutable executor defined in the module. 
+Once the question on Realitio has confirmed that the transactions should be executed, they are submitted to the immutable executor defined in the module.
 
 ### Features
 - The Realitio question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
