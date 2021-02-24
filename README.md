@@ -39,6 +39,7 @@ The DAO module depends on an oracle to determine if a proposal was exepted and w
 - The oracle MUST implements the [Realitio contract interface](./contracts/interfaces/Realitio.sol)
 - It MUST not be possible to ask the same question with the same parameters again
 - Once a result is known for a question and it is finalized it MUST not change
+- The oracle MUST use the same question id generation algorithm as this module
 
 ### EIP-712 details
 
