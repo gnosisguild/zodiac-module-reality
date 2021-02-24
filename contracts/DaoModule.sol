@@ -40,7 +40,7 @@ contract DaoModule {
     );
 
     Executor public immutable executor;
-    Realitio public oracle;
+    Realitio public immutable oracle;
     uint256 public template;
     uint32 public questionTimeout;
     uint32 public questionCooldown;
@@ -61,30 +61,30 @@ contract DaoModule {
         minimumBond = bond;
         template = templateId;
     }
+    
+    modifier executorOnly(string memory message) {
+        require(msg.sender == address(executor), message);
+        _;
+    }
 
-    function setQuestionTimeout(uint32 timeout) public {
-        require(msg.sender == address(executor), "Not authorized to update timeout");
+    function setQuestionTimeout(uint32 timeout) public executorOnly("Not authorized to update timeout") {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
     }
 
-    function setQuestionCooldown(uint32 cooldown) public {
-        require(msg.sender == address(executor), "Not authorized to update cooldown");
+    function setQuestionCooldown(uint32 cooldown) public executorOnly("Not authorized to update cooldown") {
         questionCooldown = cooldown;
     }
 
-    function setArbitrator(address arbitrator) public {
-        require(msg.sender == address(executor), "Not authorized to update arbitrator");
+    function setArbitrator(address arbitrator) public executorOnly("Not authorized to update arbitrator") {
         questionArbitrator = arbitrator;
     }
 
-    function setMinimumBond(uint256 bond) public {
-        require(msg.sender == address(executor), "Not authorized to update minimum bond");
+    function setMinimumBond(uint256 bond) public executorOnly("Not authorized to update minimum bond") {
         minimumBond = bond;
     }
 
-    function setTemplate(uint256 templateId) public {
-        require(msg.sender == address(executor), "Not authorized to update template");
+    function setTemplate(uint256 templateId) public executorOnly("Not authorized to update template") {
         template = templateId;
     }
 
@@ -135,10 +135,21 @@ contract DaoModule {
     /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
-    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) public {
-        require(msg.sender == address(executor), "Not authorized to invalidate proposal");
+    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) 
+        public 
+        executorOnly("Not authorized to invalidate proposal")
+    {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
+        markQuestionHashAsInvalid(questionHash);
+    }
+
+    /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
+    /// @param questionHash Question hash calculated based on the proposal id and txHashes
+    function markQuestionHashAsInvalid(bytes32 questionHash) 
+        public 
+        executorOnly("Not authorized to invalidate question hash")
+    {
         questionIds[questionHash] = INVALIDATED;
     }
 

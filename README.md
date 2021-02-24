@@ -63,3 +63,13 @@ Once the question on Realitio has confirmed that the transactions should be exec
 - Realitio contracts can be found via
   - https://www.npmjs.com/package/@realitio/realitio-contracts
   - https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
+
+### Audit Notes
+
+#### Consistency
+- Check for duplicate tx hashes
+- Use tx index as nonce to avoid duplication
+
+#### Gas usage
+- When the `questionId` is `0` or `INVALIDATED` oracle.resultFor won't return 1, therefore the requires on the `questionId` could be removed
+- When asking submitting a proposal with a `nonce > 0` it is not required to check if the `questionId` has been invalidated as we check if it is the `questionId` with the previous nonce

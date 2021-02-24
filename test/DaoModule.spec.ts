@@ -197,6 +197,16 @@ describe("DaoModule", async () => {
         })
     })
 
+    describe("markQuestionHashAsInvalid", async () => {
+        it("throws if not authorized", async () => {
+            const { module } = await setupTestWithTestExecutor();
+            const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+            await expect(
+                module.markQuestionHashAsInvalid(randomHash)
+            ).to.be.revertedWith("Not authorized to invalidate question hash");
+        })
+    })
+
     describe("markProposalAsInvalid", async () => {
         it("throws if not authorized", async () => {
             const { module } = await setupTestWithTestExecutor();
