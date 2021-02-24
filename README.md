@@ -8,6 +8,8 @@ These two components (`proposalId` and `txHashes`) uniquely identify a question 
 
 Once the question on Realitio has confirmed that the transactions should be executed, they are submitted to the immutable executor defined in the module.
 
+This module is intended to be used with the [Gnosis Safe](https://github.com/gnosis/safe-contracts).
+
 ### Features
 - Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Realitio question that validates the execution of the connected transactions.
 - Proposals can be marked invalid by the `executor` using `markProposalInvalid` preventing the execution of the transactions related to that proposal
@@ -40,6 +42,12 @@ The DAO module depends on an oracle to determine if a proposal was exepted and w
 - It MUST not be possible to ask the same question with the same parameters again
 - Once a result is known for a question and it is finalized it MUST not change
 - The oracle MUST use the same question id generation algorithm as this module
+
+The reference oracle implementations are the Realitio contracts. These can be found on
+- https://www.npmjs.com/package/@realitio/realitio-contracts
+- https://github.com/realitio/realitio-contracts/
+  - Ether: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
+  - ERC20: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
 
 ### EIP-712 details
 
@@ -78,12 +86,6 @@ The DAO module depends on an oracle to determine if a proposal was exepted and w
 - `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
 - `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`
-
-### Notes
-
-- Realitio contracts can be found via
-  - https://www.npmjs.com/package/@realitio/realitio-contracts
-  - https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
 
 ### Audit Notes
 
