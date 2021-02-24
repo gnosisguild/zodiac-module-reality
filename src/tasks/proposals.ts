@@ -68,7 +68,6 @@ task("showProposal", "Shows proposal quesion details")
 
 task("executeProposal", "Executes a proposal")
         .addParam("module", "Address of the module", undefined, types.string)
-        .addParam("question", "Id of the question for the proposal", undefined, types.string)
         .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
         .setAction(async (taskArgs, hardhatRuntime) => {
             const ethers = hardhatRuntime.ethers;
@@ -77,9 +76,10 @@ task("executeProposal", "Executes a proposal")
 
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);
 
-            for (const moduleTx of proposal.txs) {
-                const tx = await module.executeProposal(
-                    taskArgs.question, proposal.id, proposal.txsHashes, moduleTx.to, moduleTx.value, moduleTx.data, moduleTx.operation, moduleTx.nonce
+            for (const index in proposal.txs) {
+                const moduleTx = proposal.txs[index]
+                const tx = await module.executeProposalWithIndex(
+                    proposal.id, proposal.txsHashes, index, moduleTx.to, moduleTx.value, moduleTx.data, moduleTx.operation, moduleTx.nonce
                 );
                 console.log("Transaction:", tx.hash);
             }
