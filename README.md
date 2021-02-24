@@ -33,6 +33,13 @@ The `nonce` of a DAO module transaction is equals to the `index` of that transac
 
 There is the change that a question for a proposal is marked invalid on the oracle (e.g. when it is asked to early). In this case it should be possible to ask the question again. For this we need to be able to generate a new question id. For this it is possible to provide the next higher `nonce` compared to the last invalidated proposal. So in case the first proposal (with the default `nonce` of `0`) was marked invalid on the oracle, a new proposal can be submitted with the `nonce` of `1`.
 
+#### Oracle / Realitio
+
+The DAO module depends on an oracle to determine if a proposal was exepted and was deemed valid. The following assumptions are being made:
+- The oracle MUST implements the [Realitio contract interface](./contracts/interfaces/Realitio.sol)
+- It MUST not be possible to ask the same question with the same parameters again
+- Once a result is known for a question and it is finalized it MUST not change
+
 ### EIP-712 details
 
 [EIP-712](https://github.com/Ethereum/EIPs/blob/master/EIPS/eip-712.md) is used to generate the hashes for the transactions to be executed. The following EIP-712 domain and types are used
@@ -84,6 +91,7 @@ There is the change that a question for a proposal is marked invalid on the orac
   - Note: Checking this naively (comparing all elements) is quite expensive. We require `n*(n-1)/2` loops and each loop is around 400 gas.
 - Use tx index as nonce to avoid duplication :heavy_check_mark:
 - When the Realitio question params (e.g. `templateId`) change after a question has been marked invalid on the oracle. It will not be possible to try this question again with a higher nonce.
+- Timeout should be checked to be below 365 days (same as in the Realitio contract)
 
 #### Gas usage
 - When the `questionId` is `0` or `INVALIDATED` oracle.resultFor won't return 1, therefore the requires on the `questionId` could be removed
