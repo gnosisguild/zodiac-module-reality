@@ -490,7 +490,7 @@ describe("DaoModule", async () => {
             ).to.be.equals(2);
         })
 
-        it.only("can invalidate after question param change", async () => {
+        it("can invalidate after question param change", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
