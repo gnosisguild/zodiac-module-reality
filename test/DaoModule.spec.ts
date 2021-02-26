@@ -2,7 +2,6 @@ import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { nextBlockTime } from "./utils";
-import { BigNumber } from "ethers";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -457,23 +456,6 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Previous proposal was not invalidated");
         })
 
-        it("throws if previous question doesn't exist", async () => {
-            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
-            const id = "some_random_id";
-            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
-
-            const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
-            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            const resultForCalldata = oracle.interface.encodeFunctionData("resultFor", [previousQuestionId])
-            await mock.givenCalldataReturnUint(resultForCalldata, INVALIDATED_STATE)
-
-            await expect(
-                module.addProposalWithNonce(id, [txHash], 1)
-            ).to.be.revertedWith("Unexpected existing question id for this proposal");
-        })
-
         it("calls askQuestion with correct data", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
@@ -508,6 +490,88 @@ describe("DaoModule", async () => {
             ).to.be.equals(2);
         })
 
+        it.only("can invalidate after question param change", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            await module.addProposal(id, [txHash])
+
+            const updateQuestionTimeout = module.interface.encodeFunctionData(
+                "setQuestionTimeout",
+                [23]
+            )
+            await executor.exec(module.address, 0, updateQuestionTimeout)
+
+            const questionId = await module.getQuestionId(1337, question, executor.address, 23, 0, 11)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
+
+            await expect(
+                module.addProposalWithNonce(id, [txHash], 11)
+            ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
+            expect(
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
+
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 23, 0, 11])
+            expect(
+                (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
+            ).to.be.equals(1);
+
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(2);
+        })
+
+        it("can invalidate multiple times", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            await module.addProposal(id, [txHash])
+            
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
+
+            await expect(
+                module.addProposalWithNonce(id, [txHash], 1)
+            ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
+            expect(
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
+            
+            // Nonce doesn't need to increase 1 by 1
+            const finalQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1337)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), finalQuestionId)
+            await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [questionId]), INVALIDATED_STATE)
+
+            await expect(
+                module.addProposalWithNonce(id, [txHash], 1337)
+            ).to.emit(module, "ProposalQuestionCreated").withArgs(finalQuestionId, id)
+            expect(
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(finalQuestionId)
+
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 1337])
+            expect(
+                (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
+            ).to.be.equals(1);
+
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(3);
+        })
+
         it("does not create proposal if previous nonce was internally invalidated", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
@@ -534,6 +598,35 @@ describe("DaoModule", async () => {
             await expect(
                 module.addProposalWithNonce(...proposalParameters, 1)
             ).to.be.revertedWith("This proposal has been marked as invalid")
+        })
+
+        it("cannot ask again if follop up was not invalidated", async () => {
+            const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 42)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            await module.addProposal(id, [txHash])
+            
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
+
+            await expect(
+                module.addProposalWithNonce(id, [txHash], 42)
+            ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
+            expect(
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(questionId)
+            
+            await mock.givenCalldataReturnBool(oracle.interface.encodeFunctionData("resultFor", [questionId]), true)
+
+            await expect(
+                module.addProposalWithNonce(id, [txHash], 1337)
+            ).to.be.revertedWith("Previous proposal was not invalidated")
         })
     })
 

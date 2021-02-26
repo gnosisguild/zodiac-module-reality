@@ -131,13 +131,9 @@ contract DaoModule {
         if (nonce > 0) {
             // Previous nonce must have been invalidated by the oracle.
             // However, if the proposal was internally invalidated, it should not be possible to ask it again.
-            bytes32 invalidatedQuestionId = getQuestionId(
-                templateId, question, arbitrator, timeout, 0, nonce - 1
-            );
             bytes32 currentQuestionId = questionIds[questionHash];
             require(currentQuestionId != INVALIDATED, "This proposal has been marked as invalid");
-            require(currentQuestionId == invalidatedQuestionId, "Unexpected existing question id for this proposal");
-            require(oracle.resultFor(invalidatedQuestionId) == INVALIDATED, "Previous proposal was not invalidated");
+            require(oracle.resultFor(currentQuestionId) == INVALIDATED, "Previous proposal was not invalidated");
         } else {
             require(questionIds[questionHash] == bytes32(0), "Proposal has already been submitted");
         }
