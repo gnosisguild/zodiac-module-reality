@@ -67,6 +67,7 @@ contract DaoModule {
         _;
     }
 
+    /// @notice This can only be called by the executor
     function setQuestionTimeout(uint32 timeout) 
         public
         executorOnly()
@@ -75,6 +76,7 @@ contract DaoModule {
         questionTimeout = timeout;
     }
 
+    /// @notice This can only be called by the executor
     function setQuestionCooldown(uint32 cooldown) 
         public
         executorOnly()
@@ -82,6 +84,7 @@ contract DaoModule {
         questionCooldown = cooldown;
     }
 
+    /// @notice This can only be called by the executor
     function setArbitrator(address arbitrator)
         public
         executorOnly()
@@ -89,6 +92,7 @@ contract DaoModule {
         questionArbitrator = arbitrator;
     }
 
+    /// @notice This can only be called by the executor
     function setMinimumBond(uint256 bond)
         public
         executorOnly()
@@ -96,6 +100,7 @@ contract DaoModule {
         minimumBond = bond;
     }
 
+    /// @notice This can only be called by the executor
     function setTemplate(uint256 templateId)
         public
         executorOnly()
@@ -150,18 +155,20 @@ contract DaoModule {
     /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
+    /// @notice This can only be called by the executor
     function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) 
         public 
-        executorOnly()
+        // Executor only is check in markProposalAsInvalid(bytes32)
     {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
-        questionIds[questionHash] = INVALIDATED;
+        markProposalAsInvalidByHash(questionHash);
     }
 
     /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
-    function markQuestionHashAsInvalid(bytes32 questionHash) 
+    /// @notice This can only be called by the executor
+    function markProposalAsInvalidByHash(bytes32 questionHash) 
         public 
         executorOnly()
     {

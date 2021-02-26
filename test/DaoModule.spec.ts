@@ -197,12 +197,12 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe("markQuestionHashAsInvalid", async () => {
+    describe("markProposalAsInvalidByHash", async () => {
         it("throws if not authorized", async () => {
             const { module } = await setupTestWithTestExecutor();
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
-                module.markQuestionHashAsInvalid(randomHash)
+                module.markProposalAsInvalidByHash(randomHash)
             ).to.be.revertedWith("Not authorized");
         })
 
@@ -214,7 +214,7 @@ describe("DaoModule", async () => {
                 await module.questionIds(randomHash)
             ).to.be.equals(ZERO_STATE);
 
-            const calldata = module.interface.encodeFunctionData("markQuestionHashAsInvalid", [randomHash])
+            const calldata = module.interface.encodeFunctionData("markProposalAsInvalidByHash", [randomHash])
             await executor.exec(module.address, 0, calldata)
 
             expect(
@@ -239,7 +239,7 @@ describe("DaoModule", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const calldata = module.interface.encodeFunctionData("markQuestionHashAsInvalid", [questionHash])
+            const calldata = module.interface.encodeFunctionData("markProposalAsInvalidByHash", [questionHash])
             await executor.exec(module.address, 0, calldata)
 
             expect(
