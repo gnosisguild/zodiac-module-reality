@@ -8,6 +8,8 @@ These two components (`proposalId` and `txHashes`) uniquely identify a question 
 
 Once the question on Realitio has confirmed that the transactions should be executed, they are submitted to the immutable executor defined in the module.
 
+This module is intended to be used with the [Gnosis Safe](https://github.com/gnosis/safe-contracts).
+
 ### Features
 - Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Realitio question that validates the execution of the connected transactions.
 - Proposals can be marked invalid by the `executor` using `markProposalInvalid` preventing the execution of the transactions related to that proposal
@@ -19,6 +21,33 @@ Once the question on Realitio has confirmed that the transactions should be exec
 - Create question on Realitio via the `addProposal` method of this module.
 - Question needs to be answered on Realitio with yes (1) to approve it for execution.
 - Once the has a result and the `cooldown` period has passed the transaction(s) can be execute via `executeProposal`
+
+### Definitions
+
+#### Transaction nonce or index
+
+The `nonce` of a transaction makes it possible to have two transactions with the same `to`, `value` and `data` but still generate a different transaction hash. This is important as all hashes in the `txHashes` array should be unique. To make sure that this is the case the module will always use the `index` of the transaction hash inside the `txHashes` array as a nonce. So the first transction to be executed has the `nonce` with the value `0`, the second with the value `1`, and so on.
+
+Therefore we can simplify it to the following statement:
+The `nonce` of a DAO module transaction is equals to the `index` of that transactions hash in the `txHashes` array.
+
+#### Proposal nonce
+
+There is the change that a question for a proposal is marked invalid on the oracle (e.g. when it is asked to early). In this case it should be possible to ask the question again. For this we need to be able to generate a new question id. For this it is possible to provide the next higher `nonce` compared to the last invalidated proposal. So in case the first proposal (with the default `nonce` of `0`) was marked invalid on the oracle, a new proposal can be submitted with the `nonce` of `1`.
+
+#### Oracle / Realitio
+
+The DAO module depends on an oracle to determine if a proposal was exepted and was deemed valid. The following assumptions are being made:
+- The oracle MUST implements the [Realitio contract interface](./contracts/interfaces/Realitio.sol)
+- It MUST not be possible to ask the same question with the same parameters again
+- Once a result is known for a question and it is finalized it MUST not change
+- The oracle MUST use the same question id generation algorithm as this module
+
+The reference oracle implementations are the Realitio contracts. These can be found on
+- https://www.npmjs.com/package/@realitio/realitio-contracts
+- https://github.com/realitio/realitio-contracts/
+  - Ether: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
+  - ERC20: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
 
 ### EIP-712 details
 
@@ -49,6 +78,10 @@ Once the question on Realitio has confirmed that the transactions should be exec
 }
 ```
 
+### Solidity Compiler
+
+The contracts have been developed with [Solidity 0.8.0](https://github.com/ethereum/solidity/releases/tag/v0.8.0) in mind. This version of Solidity made all arithmetic checked by default, therefore eliminating the need for explicit overflow or underflow (or other arithmetic) checks.
+
 ### Example
 
 - `yarn build`
@@ -58,8 +91,15 @@ Once the question on Realitio has confirmed that the transactions should be exec
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
 - `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`
 
-### Notes
+### Audit Notes
 
-- Realitio contracts can be found via
-  - https://www.npmjs.com/package/@realitio/realitio-contracts
-  - https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
+#### Consistency
+- Check for duplicate tx hashes
+  - Note: Checking this naively (comparing all elements) is quite expensive. We require `n*(n-1)/2` loops and each loop is around 400 gas.
+- Use tx index as nonce to avoid duplication :heavy_check_mark:
+- When the Realitio question params (e.g. `templateId`) change after a question has been marked invalid on the oracle. It will not be possible to try this question again with a higher nonce.
+- Timeout should be checked to be below 365 days (same as in the Realitio contract)
+
+#### Gas usage
+- When the `questionId` is `0` or `INVALIDATED` oracle.resultFor won't return 1, therefore the requires on the `questionId` could be removed
+- When asking submitting a proposal with a `nonce > 0` it is not required to check if the `questionId` has been invalidated as we check if it is the `questionId` with the previous nonce

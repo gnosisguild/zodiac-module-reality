@@ -40,7 +40,7 @@ contract DaoModule {
     );
 
     Executor public immutable executor;
-    Realitio public oracle;
+    Realitio public immutable oracle;
     uint256 public template;
     uint32 public questionTimeout;
     uint32 public questionCooldown;
@@ -61,30 +61,50 @@ contract DaoModule {
         minimumBond = bond;
         template = templateId;
     }
+    
+    modifier executorOnly() {
+        require(msg.sender == address(executor), "Not authorized");
+        _;
+    }
 
-    function setQuestionTimeout(uint32 timeout) public {
-        require(msg.sender == address(executor), "Not authorized to update timeout");
+    /// @notice This can only be called by the executor
+    function setQuestionTimeout(uint32 timeout) 
+        public
+        executorOnly()
+    {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
     }
 
-    function setQuestionCooldown(uint32 cooldown) public {
-        require(msg.sender == address(executor), "Not authorized to update cooldown");
+    /// @notice This can only be called by the executor
+    function setQuestionCooldown(uint32 cooldown) 
+        public
+        executorOnly()
+    {
         questionCooldown = cooldown;
     }
 
-    function setArbitrator(address arbitrator) public {
-        require(msg.sender == address(executor), "Not authorized to update arbitrator");
+    /// @notice This can only be called by the executor
+    function setArbitrator(address arbitrator)
+        public
+        executorOnly()
+    {
         questionArbitrator = arbitrator;
     }
 
-    function setMinimumBond(uint256 bond) public {
-        require(msg.sender == address(executor), "Not authorized to update minimum bond");
+    /// @notice This can only be called by the executor
+    function setMinimumBond(uint256 bond)
+        public
+        executorOnly()
+    {
         minimumBond = bond;
     }
 
-    function setTemplate(uint256 templateId) public {
-        require(msg.sender == address(executor), "Not authorized to update template");
+    /// @notice This can only be called by the executor
+    function setTemplate(uint256 templateId)
+        public
+        executorOnly()
+    {
         template = templateId;
     }
 
@@ -111,13 +131,9 @@ contract DaoModule {
         if (nonce > 0) {
             // Previous nonce must have been invalidated by the oracle.
             // However, if the proposal was internally invalidated, it should not be possible to ask it again.
-            bytes32 invalidatedQuestionId = getQuestionId(
-                templateId, question, arbitrator, timeout, 0, nonce - 1
-            );
             bytes32 currentQuestionId = questionIds[questionHash];
             require(currentQuestionId != INVALIDATED, "This proposal has been marked as invalid");
-            require(currentQuestionId == invalidatedQuestionId, "Unexpected existing question id for this proposal");
-            require(oracle.resultFor(invalidatedQuestionId) == INVALIDATED, "Previous proposal was not invalidated");
+            require(oracle.resultFor(currentQuestionId) == INVALIDATED, "Previous proposal was not invalidated");
         } else {
             require(questionIds[questionHash] == bytes32(0), "Proposal has already been submitted");
         }
@@ -135,10 +151,23 @@ contract DaoModule {
     /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
-    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) public {
-        require(msg.sender == address(executor), "Not authorized to invalidate proposal");
+    /// @notice This can only be called by the executor
+    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) 
+        public 
+        // Executor only is check in markProposalAsInvalid(bytes32)
+    {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
+        markProposalAsInvalidByHash(questionHash);
+    }
+
+    /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
+    /// @param questionHash Question hash calculated based on the proposal id and txHashes
+    /// @notice This can only be called by the executor
+    function markProposalAsInvalidByHash(bytes32 questionHash) 
+        public 
+        executorOnly()
+    {
         questionIds[questionHash] = INVALIDATED;
     }
 
@@ -149,22 +178,20 @@ contract DaoModule {
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
-    /// @param nonce Nonce  of the transaction that should be executed
     /// @notice The txIndex used by this function is always 0
-    function executeProposal(string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
-        executeProposalWithIndex(proposalId, txHashes, 0, to, value, data, operation, nonce);
+    function executeProposal(string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
+        executeProposalWithIndex(proposalId, txHashes, to, value, data, operation, 0);
     }
 
     /// @dev Executes the transactions of a proposal via the executor if accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
-    /// @param txIndex Index of the transaction hash in txHashes
     /// @param to Target of the transaction that should be executed
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
-    /// @param nonce Nonce  of the transaction that should be executed
-    function executeProposalWithIndex(string memory proposalId, bytes32[] memory txHashes, uint256 txIndex, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public {
+    /// @param txIndex Index of the transaction hash in txHashes. This is used as the nonce for the transaction, to make the tx hash unique
+    function executeProposalWithIndex(string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 txIndex) public {
         // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
         bytes32 questionHash = keccak256(bytes(buildQuestion(proposalId, txHashes)));
         // Lookup question id for this proposal
@@ -173,7 +200,7 @@ contract DaoModule {
         require(questionId != bytes32(0), "No question id set for provided proposal");
         require(questionId != INVALIDATED, "Proposal has been invalidated");
 
-        bytes32 txHash = getTransactionHash(to, value, data, operation, nonce);
+        bytes32 txHash = getTransactionHash(to, value, data, operation, txIndex);
         require(txHashes[txIndex] == txHash, "Unexpected transaction hash");
 
         // Check that the result of the question is 1 (true)

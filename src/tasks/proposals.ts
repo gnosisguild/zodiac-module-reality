@@ -23,8 +23,8 @@ interface ModuleTransaction {
 
 const getProposalDetails = async (module: Contract, path: string): Promise<ExtendedProposal> => {
     const proposal: Proposal = JSON.parse(readFileSync(path, "utf-8"))
-    const txsHashes = await Promise.all(proposal.txs.map(async (tx) => {
-        return await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+    const txsHashes = await Promise.all(proposal.txs.map(async (tx, index) => {
+        return await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, index)
     }));
     return {
         ...proposal,
@@ -79,7 +79,7 @@ task("executeProposal", "Executes a proposal")
             for (const index in proposal.txs) {
                 const moduleTx = proposal.txs[index]
                 const tx = await module.executeProposalWithIndex(
-                    proposal.id, proposal.txsHashes, index, moduleTx.to, moduleTx.value, moduleTx.data, moduleTx.operation, moduleTx.nonce
+                    proposal.id, proposal.txsHashes, moduleTx.to, moduleTx.value, moduleTx.data, moduleTx.operation, index
                 );
                 console.log("Transaction:", tx.hash);
             }

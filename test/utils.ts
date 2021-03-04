@@ -10,3 +10,11 @@ export const increaseBlockTime = async (hre: HardhatRuntimeEnvironment, seconds:
     const block = await hre.ethers.provider.getBlock("latest")
     await nextBlockTime(hre, block.timestamp + seconds)
 }
+
+export const logGas = async (message: string, tx: Promise<any>): Promise<any> => {
+    return tx.then(async (result) => {
+        const receipt = await result.wait()
+        console.log("           Used", receipt.gasUsed.toNumber(), `gas for >${message}<`)
+        return result
+    })
+}
