@@ -154,7 +154,7 @@ contract DaoModule {
     /// @notice This can only be called by the executor
     function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) 
         public 
-        // Executor only is check in markProposalAsInvalid(bytes32)
+        // Executor only is checked in markProposalAsInvalidByHash(bytes32)
     {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
