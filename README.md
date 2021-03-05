@@ -91,15 +91,10 @@ The contracts have been developed with [Solidity 0.8.0](https://github.com/ether
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
 - `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`
 
-### Audit Notes
+### Audits
 
-#### Consistency
-- Check for duplicate tx hashes
-  - Note: Checking this naively (comparing all elements) is quite expensive. We require `n*(n-1)/2` loops and each loop is around 400 gas.
-- Use tx index as nonce to avoid duplication :heavy_check_mark:
-- When the Realitio question params (e.g. `templateId`) change after a question has been marked invalid on the oracle. It will not be possible to try this question again with a higher nonce.
-- Timeout should be checked to be below 365 days (same as in the Realitio contract)
+An audit has been performed by the [G0 group](https://github.com/g0-group).
 
-#### Gas usage
-- When the `questionId` is `0` or `INVALIDATED` oracle.resultFor won't return 1, therefore the requires on the `questionId` could be removed
-- When asking submitting a proposal with a `nonce > 0` it is not required to check if the `questionId` has been invalidated as we check if it is the `questionId` with the previous nonce
+All issues and notes of the audit have been addressed in commit [4780fbdb78dd0f837f8d3f0b252e83ee11792c87](https://github.com/gnosis/dao-module/commit/4780fbdb78dd0f837f8d3f0b252e83ee11792c87). 
+
+The audit results are available as a pdf in [this repo](./docs/GnosisDaoRealitioModuleMar2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/e53a1fcd8dbaa3ab9d49cd8a840e68c2951aca6c/GnosisDaoRealitioModuleMar2021.pdf).
