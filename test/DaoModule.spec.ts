@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { nextBlockTime } from "./utils";
+import { logGas, nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -852,6 +852,43 @@ describe("DaoModule", async () => {
             await expect(
                 module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation)
             ).to.be.revertedWith("Cannot execute transaction again");
+        })
+
+        it.only("throws if too little gas is used for the transaction", async () => {
+            const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
+            await executor.setModule(module.address)
+
+            const id = "some_random_id";
+            const tx = { to: mock.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await module.addProposal(id, [txHash])
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await nextBlockTime(hre, block.timestamp + 24)
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(1)
+            //console.log(await module.estimateGas.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce))
+            await logGas("Execute proposal", module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce, { gasLimit: 367600 }))
+            /*
+            await expect(
+                module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            ).to.be.revertedWith("out of gas");
+            */
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(1)
+            expect(
+                (await mock.callStatic.invocationCountForCalldata("0xbaddad")).toNumber()
+            ).to.be.equals(0)
+            expect(
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
+            ).to.be.equals(false)
         })
 
         it("triggers module transaction", async () => {
