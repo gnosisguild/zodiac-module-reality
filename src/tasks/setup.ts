@@ -8,6 +8,7 @@ task("setup", "Provides the clearing price to an auction")
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
     .addParam("timeout", "Timeout in seconds that should be required for the oracle", 48 * 3600, types.int, true)
     .addParam("cooldown", "Cooldown in seconds that should be required after a oracle provided answer", 24 * 3600, types.int, true)
+    .addParam("expiration", "Time duration in seconds an answer is valid. After this time the answer is expired", 7 * 24 * 3600, types.int, true)
     .addParam("bond", "Minimum bond that is required for an answer to be accepted", "0", types.string, true)
     .addParam(
         "template", 
@@ -20,7 +21,7 @@ task("setup", "Provides the clearing price to an auction")
         const [caller] = await hardhatRuntime.ethers.getSigners();
         console.log("Using the account:", caller.address);
         const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(taskArgs.dao, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.bond, taskArgs.template);
+        const module = await Module.deploy(taskArgs.dao, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template);
 
         console.log("Module deployed to:", module.address);
     });

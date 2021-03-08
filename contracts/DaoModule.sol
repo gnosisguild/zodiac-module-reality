@@ -44,6 +44,7 @@ contract DaoModule {
     uint256 public template;
     uint32 public questionTimeout;
     uint32 public questionCooldown;
+    uint32 public answerExpiration;
     address public questionArbitrator;
     uint256 public minimumBond;
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
@@ -51,10 +52,12 @@ contract DaoModule {
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
 
-    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint256 bond, uint256 templateId) {
+    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
         require(timeout > 0, "Timeout has to be greater 0");
+        require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         executor = _executor;
         oracle = _oracle;
+        answerExpiration = expiration;
         questionTimeout = timeout;
         questionCooldown = cooldown;
         questionArbitrator = address(_executor);
@@ -77,11 +80,26 @@ contract DaoModule {
     }
 
     /// @notice This can only be called by the executor
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     function setQuestionCooldown(uint32 cooldown) 
         public
         executorOnly()
     {
+        require(answerExpiration == 0 || answerExpiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         questionCooldown = cooldown;
+    }
+
+    /// @dev Sets the duration for with an answer is valid.
+    /// @param expiration Duration the answer of the oracle is valid in seconds or 0 if valid forever
+    /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
+    /// @notice This can only be called by the executor
+    function setAnswerExpiration(uint32 expiration) 
+        public
+        executorOnly()
+    {
+        require(expiration == 0 || expiration - questionCooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
+        answerExpiration = expiration;
     }
 
     /// @notice This can only be called by the executor
@@ -171,6 +189,21 @@ contract DaoModule {
         questionIds[questionHash] = INVALIDATED;
     }
 
+    /// @dev Marks a proposal with an expired answer as invalid, preventing execution of the connected transactions
+    /// @param questionHash Question hash calculated based on the proposal id and txHashes
+    function markProposalWithExpiredAnswerAsInvalid(bytes32 questionHash) 
+        public 
+    {
+        uint32 expirationDuration = answerExpiration;
+        require(expirationDuration > 0, "Answers are valid forever");
+        bytes32 questionId = questionIds[questionHash];
+        require(questionId != INVALIDATED, "Proposal is already invalidated");
+        require(questionId != bytes32(0), "No question id set for provided proposal");
+        uint32 finalizeTs = oracle.getFinalizeTS(questionId);
+        require(finalizeTs + uint256(expirationDuration) < block.timestamp, "Answer has not expired yet");
+        questionIds[questionHash] = INVALIDATED;
+    }
+
     /// @dev Executes the transactions of a proposal via the executor if accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
@@ -209,6 +242,7 @@ contract DaoModule {
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
         require(finalizeTs + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
+        require(answerExpiration == 0 || finalizeTs + uint256(answerExpiration) >= block.timestamp, "Answer has expired");
         // Check this is either the first transaction in the list or that the previous question was already approved
         require(txIndex == 0 || executedProposalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         // Check that this question was not executed yet
