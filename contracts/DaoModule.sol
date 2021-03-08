@@ -51,12 +51,12 @@ contract DaoModule {
     mapping(bytes32 => bytes32) public questionIds;
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
-    
+
     /// @param _executor Address of the executor (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
-    /// @param expiration Duration the answer of the oracle is valid in seconds or 0 if valid forever
+    /// @param expiration Duration that the answer of the oracle is valid for in seconds or (0 if valid forever)
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
@@ -72,14 +72,14 @@ contract DaoModule {
         minimumBond = bond;
         template = templateId;
     }
-    
+
     modifier executorOnly() {
         require(msg.sender == address(executor), "Not authorized");
         _;
     }
 
     /// @notice This can only be called by the executor
-    function setQuestionTimeout(uint32 timeout) 
+    function setQuestionTimeout(uint32 timeout)
         public
         executorOnly()
     {
@@ -91,7 +91,7 @@ contract DaoModule {
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @notice This can only be called by the executor
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    function setQuestionCooldown(uint32 cooldown) 
+    function setQuestionCooldown(uint32 cooldown)
         public
         executorOnly()
     {
@@ -101,11 +101,11 @@ contract DaoModule {
     }
 
     /// @dev Sets the duration for which an answer is valid.
-    /// @param expiration Duration the answer of the oracle is valid in seconds or 0 if valid forever
+    /// @param expiration Duration that the answer of the oracle is valid for in seconds or (0 if valid forever)
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     /// @notice This can only be called by the executor
-    function setAnswerExpiration(uint32 expiration) 
+    function setAnswerExpiration(uint32 expiration)
         public
         executorOnly()
     {
@@ -188,8 +188,8 @@ contract DaoModule {
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @notice This can only be called by the executor
-    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) 
-        public 
+    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes)
+        public
         // Executor only is checked in markProposalAsInvalidByHash(bytes32)
     {
         string memory question = buildQuestion(proposalId, txHashes);
@@ -200,8 +200,8 @@ contract DaoModule {
     /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
     /// @notice This can only be called by the executor
-    function markProposalAsInvalidByHash(bytes32 questionHash) 
-        public 
+    function markProposalAsInvalidByHash(bytes32 questionHash)
+        public
         executorOnly()
     {
         questionIds[questionHash] = INVALIDATED;
@@ -209,8 +209,8 @@ contract DaoModule {
 
     /// @dev Marks a proposal with an expired answer as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
-    function markProposalWithExpiredAnswerAsInvalid(bytes32 questionHash) 
-        public 
+    function markProposalWithExpiredAnswerAsInvalid(bytes32 questionHash)
+        public
     {
         uint32 expirationDuration = answerExpiration;
         require(expirationDuration > 0, "Answers are valid forever");
@@ -287,7 +287,7 @@ contract DaoModule {
         bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
         return keccak256(abi.encodePacked(contentHash, arbitrator, timeout, this, nonce));
     }
-    
+
     /// @dev Returns the chain id used by this contract.
     function getChainId() public view returns (uint256) {
         uint256 id;
@@ -297,7 +297,7 @@ contract DaoModule {
         }
         return id;
     }
-    
+
     /// @dev Generates the data for the module transaction hash (required for signing)
     function generateTransactionHashData(
         address to,

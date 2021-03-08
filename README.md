@@ -51,7 +51,7 @@ The reference oracle implementations are the Realitio contracts. These can be fo
 
 ### Failed transactions
 
-It is required that the transctions of a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail it will not be possible to continue with the execution of the following transactions. This is to prevent that due to too low gas limits or other error a required transaction is failing and then the following transactions are still executed.
+It is required that the transactions from a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail it will not be possible to continue with the execution of the following transactions. This is to prevent subsequent transactions being executed in a scenario where earlier transactions failed due to the gas limit being too low or due to other errors.
 
 Transactions that failed will *not* be marked as executed and therefore can be executed at any later point in time. This is a potential risk and therefore it is recommended to either set an answer expiration time or invalidate the proposal (e.g. via another proposal).
 
@@ -59,7 +59,7 @@ Transactions that failed will *not* be marked as executed and therefore can be e
 
 The module can be configured so that answer will expire after a certain time. This can be done by calling `setAnswerExpiration` with a time duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent that they are unexpectedly executed in the future.
 
-Note: If the expiration time is set to `0` answers will never expire. This also means answers that expired before will become available again. To prevent this it is possible to call `markProposalWithExpiredAnswerAsInvalid`, this will mark a proposal with an expired answer as invalid. This method can be called by anyone.
+Note: If the expiration time is set to `0` answers will never expire. This also means answers that expired before will become available again. To prevent this, it is recommended to call `markProposalWithExpiredAnswerAsInvalid` immediately after any proposal expires (or on all outstanding expired answers prior to setting the expiration date to `0`), this will mark a proposal with an expired answer as invalid. This method can be called by anyone.
 
 ### EIP-712 details
 
