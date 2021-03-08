@@ -95,7 +95,8 @@ contract DaoModule {
         public
         executorOnly()
     {
-        require(answerExpiration == 0 || answerExpiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
+        uint32 expiration = answerExpiration;
+        require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         questionCooldown = cooldown;
     }
 
@@ -259,7 +260,8 @@ contract DaoModule {
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
         require(finalizeTs + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
-        require(answerExpiration == 0 || finalizeTs + uint256(answerExpiration) >= block.timestamp, "Answer has expired");
+        uint32 expiration = answerExpiration;
+        require(expiration == 0 || finalizeTs + uint256(expiration) >= block.timestamp, "Answer has expired");
         // Check this is either the first transaction in the list or that the previous question was already approved
         require(txIndex == 0 || executedProposalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         // Check that this question was not executed yet
