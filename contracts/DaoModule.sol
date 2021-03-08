@@ -215,9 +215,8 @@ contract DaoModule {
         require(!executedProposalTransactions[questionHash][txHash], "Cannot execute transaction again");
         // Mark transaction as executed
         executedProposalTransactions[questionHash][txHash] = true;
-        // Execute the transaction via the executor. We do not care about the return value (indicating if the internal tx was a success).
-        // But if the transaction reverts it will be propagated up (in case this module was not allowed to execute transactions).
-        executor.execTransactionFromModule(to, value, data, operation);
+        // Execute the transaction via the executor.
+        require(executor.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes

@@ -854,12 +854,12 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Cannot execute transaction again");
         })
 
-        it.only("throws if too little gas is used for the transaction", async () => {
+        it("throws if too little gas is used for the transaction and can be executed later on", async () => {
             const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
             await executor.setModule(module.address)
 
             const id = "some_random_id";
-            const tx = { to: mock.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: mock.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
@@ -873,13 +873,10 @@ describe("DaoModule", async () => {
             expect(
                 (await mock.callStatic.invocationCount()).toNumber()
             ).to.be.equals(1)
-            //console.log(await module.estimateGas.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce))
-            await logGas("Execute proposal", module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce, { gasLimit: 367600 }))
-            /*
+            await mock.givenCalldataRunOutOfGas("0xbaddad")
             await expect(
                 module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
-            ).to.be.revertedWith("out of gas");
-            */
+            ).to.be.revertedWith("Module transaction failed");
             expect(
                 (await mock.callStatic.invocationCount()).toNumber()
             ).to.be.equals(1)
@@ -889,6 +886,19 @@ describe("DaoModule", async () => {
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(false)
+            
+            // Disable out of gas and check if we can execute it now
+            await mock.givenCalldataReturn("0xbaddad", "0xbaddad")
+            await module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce);
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(2)
+            expect(
+                (await mock.callStatic.invocationCountForCalldata("0xbaddad")).toNumber()
+            ).to.be.equals(1)
+            expect(
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
+            ).to.be.equals(true)
         })
 
         it("triggers module transaction", async () => {
