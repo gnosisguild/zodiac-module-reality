@@ -49,6 +49,12 @@ The reference oracle implementations are the Realitio contracts. These can be fo
   - Ether: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
   - ERC20: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
 
+### Failed transactions
+
+It is required that the transctions of a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail it will not be possible to continue with the execution of the following transactions. This is to prevent that due to too low gas limits or other error a required transaction is failing and then the following transactions are still executed.
+
+The transaction that failed will *not* be marked as executed and therefore can be at any later point in time. This is a potential risk and therefore it is recommended to invalidate the proposal (e.g. via another proposal).
+
 ### EIP-712 details
 
 [EIP-712](https://github.com/Ethereum/EIPs/blob/master/EIPS/eip-712.md) is used to generate the hashes for the transactions to be executed. The following EIP-712 domain and types are used.
