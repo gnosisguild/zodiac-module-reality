@@ -51,7 +51,15 @@ contract DaoModule {
     mapping(bytes32 => bytes32) public questionIds;
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
-
+    
+    /// @param _executor Address of the executor (e.g. a Safe)
+    /// @param _oracle Address of the oracle (e.g. Realitio)
+    /// @param timeout Timeout in seconds that should be required for the oracle
+    /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
+    /// @param expiration Duration the answer of the oracle is valid in seconds or 0 if valid forever
+    /// @param bond Minimum bond that is required for an answer to be accepted
+    /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
         require(timeout > 0, "Timeout has to be greater 0");
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
@@ -79,6 +87,8 @@ contract DaoModule {
         questionTimeout = timeout;
     }
 
+    /// @dev Sets the cooldown before an answer is usable.
+    /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @notice This can only be called by the executor
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     function setQuestionCooldown(uint32 cooldown) 
@@ -89,7 +99,7 @@ contract DaoModule {
         questionCooldown = cooldown;
     }
 
-    /// @dev Sets the duration for with an answer is valid.
+    /// @dev Sets the duration for which an answer is valid.
     /// @param expiration Duration the answer of the oracle is valid in seconds or 0 if valid forever
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
@@ -102,6 +112,8 @@ contract DaoModule {
         answerExpiration = expiration;
     }
 
+    /// @dev Sets the question arbitrator that will be used for future questions.
+    /// @param arbitrator Address of the arbitrator
     /// @notice This can only be called by the executor
     function setArbitrator(address arbitrator)
         public
@@ -110,6 +122,8 @@ contract DaoModule {
         questionArbitrator = arbitrator;
     }
 
+    /// @dev Sets the minimum bond that is required for an answer to be accepted.
+    /// @param bond Minimum bond that is required for an answer to be accepted
     /// @notice This can only be called by the executor
     function setMinimumBond(uint256 bond)
         public
@@ -118,6 +132,9 @@ contract DaoModule {
         minimumBond = bond;
     }
 
+    /// @dev Sets the template that should be used for future questions.
+    /// @param templateId ID of the template that should be used for proposal questions
+    /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
     /// @notice This can only be called by the executor
     function setTemplate(uint256 templateId)
         public

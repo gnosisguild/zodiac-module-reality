@@ -139,7 +139,7 @@ describe("DaoModule", async () => {
             ).to.be.equals(40);
         })
 
-        it("tcan reset to 0", async () => {
+        it("can reset to 0", async () => {
             const { module, executor } = await setupTestWithTestExecutor();
 
             const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [100])
@@ -398,7 +398,7 @@ describe("DaoModule", async () => {
     })
 
     describe("markProposalWithExpiredAnswerAsInvalid", async () => {
-        it("throws if answer cannot expired", async () => {
+        it("throws if answer cannot expire", async () => {
             const { module } = await setupTestWithTestExecutor();
         
             const id = "some_random_id";
@@ -431,7 +431,7 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Proposal is already invalidated");
         })
 
-        it("throws question is unknown", async () => {
+        it("throws if question is unknown", async () => {
             const { module, executor } = await setupTestWithTestExecutor();
             
             const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
@@ -1053,6 +1053,7 @@ describe("DaoModule", async () => {
                 module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation)
             ).to.be.revertedWith("Answer has expired");
 
+            // Reset answer expiration time, so that we can execute the transaction
             const resetAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [0])
             await executor.exec(module.address, 0, resetAnswerExpiration)
 
@@ -1095,48 +1096,35 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Cannot execute transaction again");
         })
 
-        it("throws if too little gas is used for the transaction and can be executed later on", async () => {
-            const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
-            await executor.setModule(module.address)
+        it("throws if module transaction failed", async () => {
+            const { executor, mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
             const tx = { to: mock.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
 
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             await module.addProposal(id, [txHash])
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), false)
             await nextBlockTime(hre, block.timestamp + 24)
             expect(
                 (await mock.callStatic.invocationCount()).toNumber()
             ).to.be.equals(1)
-            await mock.givenCalldataRunOutOfGas("0xbaddad")
             await expect(
                 module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             ).to.be.revertedWith("Module transaction failed");
             expect(
-                (await mock.callStatic.invocationCount()).toNumber()
-            ).to.be.equals(1)
-            expect(
-                (await mock.callStatic.invocationCountForCalldata("0xbaddad")).toNumber()
-            ).to.be.equals(0)
-            expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(false)
 
-            // Disable out of gas and check if we can execute it now
-            await mock.givenCalldataReturn("0xbaddad", "0xbaddad")
+            // Return success and check that it can be executed
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
             await module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce);
-            expect(
-                (await mock.callStatic.invocationCount()).toNumber()
-            ).to.be.equals(2)
-            expect(
-                (await mock.callStatic.invocationCountForCalldata("0xbaddad")).toNumber()
-            ).to.be.equals(1)
             expect(
                 await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
             ).to.be.equals(true)
