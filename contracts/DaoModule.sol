@@ -259,6 +259,7 @@ contract DaoModule {
         uint256 minBond = minimumBond;
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
+        // The answer is valid in the time after the cooldown and before the expiration time (if set).
         require(finalizeTs + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
         uint32 expiration = answerExpiration;
         require(expiration == 0 || finalizeTs + uint256(expiration) >= block.timestamp, "Answer has expired");
