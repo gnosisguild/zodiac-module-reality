@@ -44,6 +44,7 @@ contract DaoModule {
     uint256 public template;
     uint32 public questionTimeout;
     uint32 public questionCooldown;
+    uint32 public answerExpiration;
     address public questionArbitrator;
     uint256 public minimumBond;
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
@@ -51,24 +52,34 @@ contract DaoModule {
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
 
-    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint256 bond, uint256 templateId) {
+    /// @param _executor Address of the executor (e.g. a Safe)
+    /// @param _oracle Address of the oracle (e.g. Realitio)
+    /// @param timeout Timeout in seconds that should be required for the oracle
+    /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
+    /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
+    /// @param bond Minimum bond that is required for an answer to be accepted
+    /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
+    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
         require(timeout > 0, "Timeout has to be greater 0");
+        require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         executor = _executor;
         oracle = _oracle;
+        answerExpiration = expiration;
         questionTimeout = timeout;
         questionCooldown = cooldown;
         questionArbitrator = address(_executor);
         minimumBond = bond;
         template = templateId;
     }
-    
+
     modifier executorOnly() {
         require(msg.sender == address(executor), "Not authorized");
         _;
     }
 
     /// @notice This can only be called by the executor
-    function setQuestionTimeout(uint32 timeout) 
+    function setQuestionTimeout(uint32 timeout)
         public
         executorOnly()
     {
@@ -76,14 +87,34 @@ contract DaoModule {
         questionTimeout = timeout;
     }
 
+    /// @dev Sets the cooldown before an answer is usable.
+    /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @notice This can only be called by the executor
-    function setQuestionCooldown(uint32 cooldown) 
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
+    function setQuestionCooldown(uint32 cooldown)
         public
         executorOnly()
     {
+        uint32 expiration = answerExpiration;
+        require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         questionCooldown = cooldown;
     }
 
+    /// @dev Sets the duration for which a positive answer is valid.
+    /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
+    /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
+    /// @notice This can only be called by the executor
+    function setAnswerExpiration(uint32 expiration)
+        public
+        executorOnly()
+    {
+        require(expiration == 0 || expiration - questionCooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
+        answerExpiration = expiration;
+    }
+
+    /// @dev Sets the question arbitrator that will be used for future questions.
+    /// @param arbitrator Address of the arbitrator
     /// @notice This can only be called by the executor
     function setArbitrator(address arbitrator)
         public
@@ -92,6 +123,8 @@ contract DaoModule {
         questionArbitrator = arbitrator;
     }
 
+    /// @dev Sets the minimum bond that is required for an answer to be accepted.
+    /// @param bond Minimum bond that is required for an answer to be accepted
     /// @notice This can only be called by the executor
     function setMinimumBond(uint256 bond)
         public
@@ -100,6 +133,9 @@ contract DaoModule {
         minimumBond = bond;
     }
 
+    /// @dev Sets the template that should be used for future questions.
+    /// @param templateId ID of the template that should be used for proposal questions
+    /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
     /// @notice This can only be called by the executor
     function setTemplate(uint256 templateId)
         public
@@ -152,8 +188,8 @@ contract DaoModule {
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @notice This can only be called by the executor
-    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes) 
-        public 
+    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes)
+        public
         // Executor only is checked in markProposalAsInvalidByHash(bytes32)
     {
         string memory question = buildQuestion(proposalId, txHashes);
@@ -164,10 +200,26 @@ contract DaoModule {
     /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
     /// @notice This can only be called by the executor
-    function markProposalAsInvalidByHash(bytes32 questionHash) 
-        public 
+    function markProposalAsInvalidByHash(bytes32 questionHash)
+        public
         executorOnly()
     {
+        questionIds[questionHash] = INVALIDATED;
+    }
+
+    /// @dev Marks a proposal with an expired answer as invalid, preventing execution of the connected transactions
+    /// @param questionHash Question hash calculated based on the proposal id and txHashes
+    function markProposalWithExpiredAnswerAsInvalid(bytes32 questionHash)
+        public
+    {
+        uint32 expirationDuration = answerExpiration;
+        require(expirationDuration > 0, "Answers are valid forever");
+        bytes32 questionId = questionIds[questionHash];
+        require(questionId != INVALIDATED, "Proposal is already invalidated");
+        require(questionId != bytes32(0), "No question id set for provided proposal");
+        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Only positive answers can expire");
+        uint32 finalizeTs = oracle.getFinalizeTS(questionId);
+        require(finalizeTs + uint256(expirationDuration) < block.timestamp, "Answer has not expired yet");
         questionIds[questionHash] = INVALIDATED;
     }
 
@@ -208,16 +260,18 @@ contract DaoModule {
         uint256 minBond = minimumBond;
         require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
+        // The answer is valid in the time after the cooldown and before the expiration time (if set).
         require(finalizeTs + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
+        uint32 expiration = answerExpiration;
+        require(expiration == 0 || finalizeTs + uint256(expiration) >= block.timestamp, "Answer has expired");
         // Check this is either the first transaction in the list or that the previous question was already approved
         require(txIndex == 0 || executedProposalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
         // Check that this question was not executed yet
         require(!executedProposalTransactions[questionHash][txHash], "Cannot execute transaction again");
         // Mark transaction as executed
         executedProposalTransactions[questionHash][txHash] = true;
-        // Execute the transaction via the executor. We do not care about the return value (indicating if the internal tx was a success).
-        // But if the transaction reverts it will be propagated up (in case this module was not allowed to execute transactions).
-        executor.execTransactionFromModule(to, value, data, operation);
+        // Execute the transaction via the executor.
+        require(executor.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes
@@ -234,7 +288,7 @@ contract DaoModule {
         bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
         return keccak256(abi.encodePacked(contentHash, arbitrator, timeout, this, nonce));
     }
-    
+
     /// @dev Returns the chain id used by this contract.
     function getChainId() public view returns (uint256) {
         uint256 id;
@@ -244,7 +298,7 @@ contract DaoModule {
         }
         return id;
     }
-    
+
     /// @dev Generates the data for the module transaction hash (required for signing)
     function generateTransactionHashData(
         address to,

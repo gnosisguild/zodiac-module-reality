@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { nextBlockTime } from "./utils";
+import { logGas, nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -47,24 +47,36 @@ describe("DaoModule", async () => {
     const setupTestWithTestExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(base.executor.address, base.mock.address, 42, 23, 0, 1337);
+        const module = await Module.deploy(base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(base.mock.address, base.mock.address, 42, 23, 0, 1337);
+        const module = await Module.deploy(base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
 
     describe("constructor", async () => {
         it("throws if timeout is 0", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModule");
+            const Module = await hre.ethers.getContractFactory("DaoModule")
             await expect(
-                Module.deploy(user1.address, user1.address, 0, 0, 0, 0)
-            ).to.be.revertedWith("Timeout has to be greater 0");
+                Module.deploy(user1.address, user1.address, 0, 0, 0, 0, 0)
+            ).to.be.revertedWith("Timeout has to be greater 0")
+        })
+
+        it("throws if not enough time between cooldown and expiration", async () => {
+            const Module = await hre.ethers.getContractFactory("DaoModule")
+            await expect(
+                Module.deploy(user1.address, user1.address, 1, 0, 59, 0, 0)
+            ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
+        })
+
+        it("answer expiration can be 0", async () => {
+            const Module = await hre.ethers.getContractFactory("DaoModule")
+            await Module.deploy(user1.address, user1.address, 1, 10, 0, 0, 0)
         })
     })
 
@@ -108,6 +120,46 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Not authorized");
         })
 
+        it("throws if not enough time between cooldown and expiration", async () => {
+            const { module, executor } = await setupTestWithTestExecutor();
+
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [100])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const setQuestionCooldownInvalid = module.interface.encodeFunctionData("setQuestionCooldown", [41])
+            await expect(
+                executor.exec(module.address, 0, setQuestionCooldownInvalid)
+            ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
+
+            const setQuestionCooldown = module.interface.encodeFunctionData("setQuestionCooldown", [40])
+            await executor.exec(module.address, 0, setQuestionCooldown)
+
+            expect(
+                await module.questionCooldown()
+            ).to.be.equals(40);
+        })
+
+        it("can reset to 0", async () => {
+            const { module, executor } = await setupTestWithTestExecutor();
+
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [100])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const setQuestionCooldown = module.interface.encodeFunctionData("setQuestionCooldown", [40])
+            await executor.exec(module.address, 0, setQuestionCooldown)
+
+            expect(
+                await module.questionCooldown()
+            ).to.be.equals(40);
+
+            const resetQuestionCooldown = module.interface.encodeFunctionData("setQuestionCooldown", [0])
+            await executor.exec(module.address, 0, resetQuestionCooldown)
+
+            expect(
+                await module.questionCooldown()
+            ).to.be.equals(0);
+        })
+
         it("updates question cooldown", async () => {
             const { module, executor } = await setupTestWithTestExecutor();
 
@@ -120,6 +172,49 @@ describe("DaoModule", async () => {
 
             expect(
                 await module.questionCooldown()
+            ).to.be.equals(511);
+        })
+    })
+
+    describe("setAnswerExpiration", async () => {
+        it("throws if not authorized", async () => {
+            const { module } = await setupTestWithTestExecutor();
+            await expect(
+                module.setAnswerExpiration(2)
+            ).to.be.revertedWith("Not authorized");
+        })
+
+        it("throws if not enough time between cooldown and expiration", async () => {
+            const { module, executor } = await setupTestWithTestExecutor();
+
+            const setQuestionCooldown = module.interface.encodeFunctionData("setQuestionCooldown", [40])
+            await executor.exec(module.address, 0, setQuestionCooldown)
+
+            const setAnswerExpirationInvalid = module.interface.encodeFunctionData("setAnswerExpiration", [99])
+            await expect(
+                executor.exec(module.address, 0, setAnswerExpirationInvalid)
+            ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
+
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [100])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            expect(
+                await module.answerExpiration()
+            ).to.be.equals(100);
+        })
+
+        it("updates question cooldown", async () => {
+            const { module, executor } = await setupTestWithTestExecutor();
+
+            expect(
+                await module.answerExpiration()
+            ).to.be.equals(0);
+
+            const calldata = module.interface.encodeFunctionData("setAnswerExpiration", [511])
+            await executor.exec(module.address, 0, calldata)
+
+            expect(
+                await module.answerExpiration()
             ).to.be.equals(511);
         })
     })
@@ -260,7 +355,7 @@ describe("DaoModule", async () => {
             const { module, executor } = await setupTestWithTestExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
@@ -302,6 +397,131 @@ describe("DaoModule", async () => {
         })
     })
 
+    describe.only("markProposalWithExpiredAnswerAsInvalid", async () => {
+        it("throws if answer cannot expire", async () => {
+            const { module } = await setupTestWithTestExecutor();
+        
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            await expect(
+                module.markProposalWithExpiredAnswerAsInvalid(questionHash)
+            ).to.be.revertedWith("Answers are valid forever");
+        })
+
+        it("throws if answer is already invalidated", async () => {
+            const { module, executor } = await setupTestWithTestExecutor();
+            
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            const markProposalAsInvalidByHash = module.interface.encodeFunctionData("markProposalAsInvalidByHash", [questionHash])
+            await executor.exec(module.address, 0, markProposalAsInvalidByHash)
+
+            await expect(
+                module.markProposalWithExpiredAnswerAsInvalid(questionHash)
+            ).to.be.revertedWith("Proposal is already invalidated");
+        })
+
+        it("throws if question is unknown", async () => {
+            const { module, executor } = await setupTestWithTestExecutor();
+            
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+        
+            const id = "some_random_id";
+            const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            await expect(
+                module.markProposalWithExpiredAnswerAsInvalid(questionHash)
+            ).to.be.revertedWith("No question id set for provided proposal");
+        })
+
+        it("throws if answer was not accepted", async () => {
+            const { mock, module, executor, oracle } = await setupTestWithTestExecutor();
+            
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
+            await module.addProposal(id, [txHash])
+
+            await expect(
+                module.markProposalWithExpiredAnswerAsInvalid(questionHash)
+            ).to.be.revertedWith("Only positive answers can expire");
+        })
+
+        it("throws if answer is not expired", async () => {
+            const { mock, module, executor, oracle } = await setupTestWithTestExecutor();
+            
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+            await module.addProposal(id, [txHash])
+
+            await expect(
+                module.markProposalWithExpiredAnswerAsInvalid(questionHash)
+            ).to.be.revertedWith("Answer has not expired yet");
+        })
+
+        it("can mark proposal with expired accepted answer as invalid", async () => {
+            const { mock, module, executor, oracle } = await setupTestWithTestExecutor();
+            
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+            await module.addProposal(id, [txHash])
+
+            await nextBlockTime(hre, block.timestamp + 91)
+
+            await module.markProposalWithExpiredAnswerAsInvalid(questionHash);
+            expect(
+                await module.questionIds(questionHash)
+            ).to.be.deep.equals(INVALIDATED_STATE);
+        })
+    })
+
     describe("getTransactionHash", async () => {
         it("correctly generates hash for tx without data", async () => {
             const { module } = await setupTestWithTestExecutor();
@@ -310,7 +530,7 @@ describe("DaoModule", async () => {
                 "chainId": chainId,
                 "verifyingContract": module.address,
             }
-            const tx = { to: user1.address, value: 42, data: "0x", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0x", operation: 0, nonce: 0 }
             expect(
                 await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             ).to.be.equals(_TypedDataEncoder.hash(domain, EIP712_TYPES, tx));
@@ -400,7 +620,7 @@ describe("DaoModule", async () => {
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
 
             await module.addProposal(id, [txHash])
-        
+
             const updateQuestionTimeout = module.interface.encodeFunctionData(
                 "setQuestionTimeout",
                 [31]
@@ -467,7 +687,7 @@ describe("DaoModule", async () => {
             const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
             await module.addProposal(id, [txHash])
-            
+
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             const resultForCalldata = oracle.interface.encodeFunctionData("resultFor", [previousQuestionId])
             await mock.givenCalldataReturnUint(resultForCalldata, INVALIDATED_STATE)
@@ -539,7 +759,7 @@ describe("DaoModule", async () => {
             const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
             await module.addProposal(id, [txHash])
-            
+
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
 
@@ -549,7 +769,7 @@ describe("DaoModule", async () => {
             expect(
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
-            
+
             // Nonce doesn't need to increase 1 by 1
             const finalQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1337)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), finalQuestionId)
@@ -611,7 +831,7 @@ describe("DaoModule", async () => {
             const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
             await module.addProposal(id, [txHash])
-            
+
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
             await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
 
@@ -621,7 +841,7 @@ describe("DaoModule", async () => {
             expect(
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
-            
+
             await mock.givenCalldataReturnBool(oracle.interface.encodeFunctionData("resultFor", [questionId]), true)
 
             await expect(
@@ -635,7 +855,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
 
             await expect(
@@ -647,7 +867,7 @@ describe("DaoModule", async () => {
             const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
@@ -670,7 +890,7 @@ describe("DaoModule", async () => {
             const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
@@ -703,7 +923,7 @@ describe("DaoModule", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 1 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 1 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
@@ -720,7 +940,7 @@ describe("DaoModule", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, []);
             const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
@@ -739,7 +959,7 @@ describe("DaoModule", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
@@ -758,7 +978,7 @@ describe("DaoModule", async () => {
             const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
@@ -783,7 +1003,7 @@ describe("DaoModule", async () => {
             const { executor, mock, module, oracle } = await setupTestWithTestExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
@@ -816,7 +1036,7 @@ describe("DaoModule", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
@@ -833,11 +1053,57 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Wait for additional cooldown");
         })
 
-        it("throws if tx was already executed for that question", async () => {
-            const { mock, module, oracle } = await setupTestWithMockExecutor();
+        it("throws if answer expired", async () => {
+            const { mock, module, oracle, executor } = await setupTestWithTestExecutor();
+
+            await user1.sendTransaction({ to: executor.address, value: 100 })
+            await executor.setModule(module.address)
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: mock.address, value: 42, data: "0x", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await module.addProposal(id, [txHash])
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
+            await nextBlockTime(hre, block.timestamp + 91)
+            await expect(
+                module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation)
+            ).to.be.revertedWith("Answer has expired");
+
+            // Reset answer expiration time, so that we can execute the transaction
+            const resetAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [0])
+            await executor.exec(module.address, 0, resetAnswerExpiration)
+
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(1)
+            expect(
+                (await hre.ethers.provider.getBalance(mock.address)).toNumber()
+            ).to.be.equals(0)
+
+            await module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation)
+            
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(2)
+            expect(
+                (await hre.ethers.provider.getBalance(mock.address)).toNumber()
+            ).to.be.equals(42)
+        })
+
+        it("throws if tx was already executed for that question", async () => {
+            const { mock, module, oracle, executor } = await setupTestWithMockExecutor();
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
@@ -847,6 +1113,7 @@ describe("DaoModule", async () => {
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
             await nextBlockTime(hre, block.timestamp + 24)
             await module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation);
             await expect(
@@ -854,11 +1121,45 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Cannot execute transaction again");
         })
 
+        it("throws if module transaction failed", async () => {
+            const { executor, mock, module, oracle } = await setupTestWithMockExecutor();
+
+            const id = "some_random_id";
+            const tx = { to: mock.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await module.addProposal(id, [txHash])
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), false)
+            await nextBlockTime(hre, block.timestamp + 24)
+            expect(
+                (await mock.callStatic.invocationCount()).toNumber()
+            ).to.be.equals(1)
+            await expect(
+                module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            ).to.be.revertedWith("Module transaction failed");
+            expect(
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
+            ).to.be.equals(false)
+
+            // Return success and check that it can be executed
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
+            await module.executeProposalWithIndex(id, [txHash], tx.to, tx.value, tx.data, tx.operation, tx.nonce);
+            expect(
+                await module.executedProposalTransactions(ethers.utils.solidityKeccak256(["string"], [question]), txHash)
+            ).to.be.equals(true)
+        })
+
         it("triggers module transaction", async () => {
             const { executor, mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
             const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
@@ -870,6 +1171,7 @@ describe("DaoModule", async () => {
             await mock.reset()
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
             await nextBlockTime(hre, block.timestamp + 23)
             await expect(
                 module.executeProposal(id, [txHash], tx.to, tx.value, tx.data, tx.operation)
@@ -902,7 +1204,7 @@ describe("DaoModule", async () => {
             const { mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx1 = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx1 = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const tx1Hash = await module.getTransactionHash(tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
             const tx2 = { to: user1.address, value: 23, data: "0xdeaddeed", operation: 0, nonce: 1 }
             const tx2Hash = await module.getTransactionHash(tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
@@ -924,7 +1226,7 @@ describe("DaoModule", async () => {
             const { executor, mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx1 = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx1 = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const tx1Hash = await module.getTransactionHash(tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
             const tx2 = { to: user1.address, value: 23, data: "0xdeaddeed", operation: 0, nonce: 1 }
             const tx2Hash = await module.getTransactionHash(tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
@@ -937,6 +1239,7 @@ describe("DaoModule", async () => {
             await mock.reset()
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
             await nextBlockTime(hre, block.timestamp + 24)
 
             await module.executeProposal(id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation)
@@ -975,7 +1278,7 @@ describe("DaoModule", async () => {
             const { executor, mock, module, oracle } = await setupTestWithMockExecutor();
 
             const id = "some_random_id";
-            const tx1 = { to: user1.address, value: 42, data: "0xbaddad", operation: 0, nonce: 0 }
+            const tx1 = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const tx1Hash = await module.getTransactionHash(tx1.to, tx1.value, tx1.data, tx1.operation, tx1.nonce)
             const tx2 = { ...tx1, nonce: 1 }
             const tx2Hash = await module.getTransactionHash(tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
@@ -990,6 +1293,7 @@ describe("DaoModule", async () => {
             await mock.reset()
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnBool(executor.interface.getSighash("execTransactionFromModule"), true)
             await nextBlockTime(hre, block.timestamp + 24)
 
             await module.executeProposal(id, [tx1Hash, tx2Hash], tx1.to, tx1.value, tx1.data, tx1.operation)
