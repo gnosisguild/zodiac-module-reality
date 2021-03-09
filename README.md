@@ -57,9 +57,10 @@ Transactions that failed will *not* be marked as executed and therefore can be e
 
 ### Answer expiration
 
-The module can be configured so that answer will expire after a certain time. This can be done by calling `setAnswerExpiration` with a time duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent that they are unexpectedly executed in the future.
+The module can be configured so that positive answers will expire after a certain time. This can be done by calling `setAnswerExpiration` with a time duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent that they are unexpectedly executed in the future. Negative answers (no or invalid) cannot expire.
 
 Note: If the expiration time is set to `0` answers will never expire. This also means answers that expired before will become available again. To prevent this, it is recommended to call `markProposalWithExpiredAnswerAsInvalid` immediately after any proposal expires (or on all outstanding expired answers prior to setting the expiration date to `0`), this will mark a proposal with an expired answer as invalid. This method can be called by anyone.
+
 
 ### EIP-712 details
 

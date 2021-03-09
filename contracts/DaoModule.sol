@@ -56,7 +56,7 @@ contract DaoModule {
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
-    /// @param expiration Duration that the answer of the oracle is valid for in seconds or (0 if valid forever)
+    /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
@@ -100,8 +100,8 @@ contract DaoModule {
         questionCooldown = cooldown;
     }
 
-    /// @dev Sets the duration for which an answer is valid.
-    /// @param expiration Duration that the answer of the oracle is valid for in seconds or (0 if valid forever)
+    /// @dev Sets the duration for which a positive answer is valid.
+    /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     /// @notice This can only be called by the executor
@@ -217,6 +217,7 @@ contract DaoModule {
         bytes32 questionId = questionIds[questionHash];
         require(questionId != INVALIDATED, "Proposal is already invalidated");
         require(questionId != bytes32(0), "No question id set for provided proposal");
+        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Only positive answers can expire");
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
         require(finalizeTs + uint256(expirationDuration) < block.timestamp, "Answer has not expired yet");
         questionIds[questionHash] = INVALIDATED;

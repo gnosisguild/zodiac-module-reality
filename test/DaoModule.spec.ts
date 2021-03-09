@@ -397,7 +397,7 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe("markProposalWithExpiredAnswerAsInvalid", async () => {
+    describe.only("markProposalWithExpiredAnswerAsInvalid", async () => {
         it("throws if answer cannot expire", async () => {
             const { module } = await setupTestWithTestExecutor();
         
@@ -447,7 +447,7 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("No question id set for provided proposal");
         })
 
-        it("throws if answer is not expired", async () => {
+        it("throws if answer was not accepted", async () => {
             const { mock, module, executor, oracle } = await setupTestWithTestExecutor();
             
             const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
@@ -461,13 +461,13 @@ describe("DaoModule", async () => {
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
 
             const block = await ethers.provider.getBlock("latest")
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
             await module.addProposal(id, [txHash])
 
             await expect(
                 module.markProposalWithExpiredAnswerAsInvalid(questionHash)
-            ).to.be.revertedWith("Answer has not expired yet");
+            ).to.be.revertedWith("Only positive answers can expire");
         })
 
         it("throws if answer is not expired", async () => {
@@ -486,6 +486,31 @@ describe("DaoModule", async () => {
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+            await module.addProposal(id, [txHash])
+
+            await expect(
+                module.markProposalWithExpiredAnswerAsInvalid(questionHash)
+            ).to.be.revertedWith("Answer has not expired yet");
+        })
+
+        it("can mark proposal with expired accepted answer as invalid", async () => {
+            const { mock, module, executor, oracle } = await setupTestWithTestExecutor();
+            
+            const setAnswerExpiration = module.interface.encodeFunctionData("setAnswerExpiration", [90])
+            await executor.exec(module.address, 0, setAnswerExpiration)
+
+            const id = "some_random_id";
+            const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
+            const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
+            const question = await module.buildQuestion(id, [txHash]);
+            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+
+            const block = await ethers.provider.getBlock("latest")
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await module.addProposal(id, [txHash])
 
             await nextBlockTime(hre, block.timestamp + 91)
