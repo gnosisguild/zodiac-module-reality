@@ -16,7 +16,7 @@ const argv = yargs
 
 // Load environment variables.
 dotenv.config();
-const { INFURA_KEY, MNEMONIC, MY_ETHERSCAN_API_KEY, PK } = process.env;
+const { INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK } = process.env;
 
 import "./src/tasks/setup";
 import "./src/tasks/proposals";
@@ -73,6 +73,6 @@ export default {
     timeout: 2000000,
   },
   etherscan: {
-    apiKey: MY_ETHERSCAN_API_KEY,
+    apiKey: ETHERSCAN_API_KEY,
   },
 };
