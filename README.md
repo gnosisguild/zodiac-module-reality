@@ -99,15 +99,16 @@ The contracts have been developed with [Solidity 0.8.0](https://github.com/ether
 
 - `yarn build`
 - `yarn hardhat --network rinkeby setup --dao <safe_address> --oracle <realitio_address> --cooldown 60 --timeout 30`
+- `yarn hardhat --network rinkeby verify-etherscan --module <module_address> --dao <safe_address> --oracle <realitio_address> --cooldown 60 --timeout 30`
 - Enable module (e.g. with transaction builder and abi from `0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F`)
 - `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
 - Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
-- `yarn hardhat --network rinkeby executeProposal --module <module_address> --question <question_id_from_realitio> --proposal-file sample_proposal.json`
+- `yarn hardhat --network rinkeby executeProposal --module <module_address> --proposal-file sample_proposal.json`
 
 ### Audits
 
 An audit has been performed by the [G0 group](https://github.com/g0-group).
 
-All issues and notes of the audit have been addressed in commit [4780fbdb78dd0f837f8d3f0b252e83ee11792c87](https://github.com/gnosis/dao-module/commit/4780fbdb78dd0f837f8d3f0b252e83ee11792c87).
+All issues and notes of the audit have been addressed in commit [7a5244d0a0a70b023d23af59659e0c055be7cca2](https://github.com/gnosis/dao-module/commit/7a5244d0a0a70b023d23af59659e0c055be7cca2).
 
-The audit results are available as a pdf in [this repo](./docs/GnosisDaoRealitioModuleMar2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/e53a1fcd8dbaa3ab9d49cd8a840e68c2951aca6c/GnosisDaoRealitioModuleMar2021.pdf).
+The audit results are available as a pdf in [this repo](./docs/GnosisDaoRealitioModuleMar2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/4e172e8b44012c6bf2346e9925df5e0f27a40d7a/GnosisDaoRealitioModuleMar2021.pdf).
