@@ -397,7 +397,7 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe.only("markProposalWithExpiredAnswerAsInvalid", async () => {
+    describe("markProposalWithExpiredAnswerAsInvalid", async () => {
         it("throws if answer cannot expire", async () => {
             const { module } = await setupTestWithTestExecutor();
         
