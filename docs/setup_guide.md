@@ -1,12 +1,12 @@
-# Setup Guide
+# SafeSnap Setup Guide
 
-This guide will provide the steps how to setup a DAO module with a Safe on Rinkeby. The setup will use Realitio and can be used with Snapshot spaces.
+This guide shows how to setup the DAO module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Realitio](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
 
-More information how this works can be found on the [Gnosis blog](https://blog.gnosis.pm/ea67eb95c34f).
+For more information on SafeSnap please refer to the [Gnosis blog](https://blog.gnosis.pm/ea67eb95c34f).
 
 ## Prerequisites
 
-To start the process you need to create a Safe (e.g. via https://app.gnosis-safe.io). This Safe will represent the DAO and hold all the assets (e.g. tokens and collectibles). It is required that you can execute via the Safe to setup the DAO module.
+To start the process you need to create a Safe on the Rinkeby test network (e.g. via https://rinkeby.gnosis-safe.io). This Safe will represent the DAO and hold all the assets (e.g. tokens and collectibles). A Safe transaction is required to setup the DAO module.
 
 For the hardhat tasks to work the environment needs to be properly configured. See the [sample env file](../.env.sample) for more information.
 
@@ -16,9 +16,9 @@ DISCLAIMER: Check the deployed Realitio contracts before using them.
 
 ## Setting up the module
 
-The first step is to deploy the module. Every DAO will have their own module. The module is linked to a DAO (called executor in the contract) and a oracle (e.g. Realitio). These cannot be changed after deployment.
+The first step is to deploy the module. Every DAO will have their own module. The module is linked to a DAO (called executor in the contract) and an oracle (e.g. Realitio). These cannot be changed after deployment.
 
-As part of the setup you need to define/ choose a template on Realitio. More information can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information) 
+As part of the setup you need to define or choose a template on Realitio. More information can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information) 
 
 ### Setup the Realitio template
 
@@ -66,7 +66,7 @@ An example for this on Rinkeby would be:
 
 ### Enabling the module
 
-To allow the DAO module to actually execute transaction it is required to enable it on the Safe that it is connected to. For this it is possible to use the Transaction Builder on https://app.gnosis-safe.io. For this you can follow our tutorial on [adding a module](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
+To allow the DAO module to actually execute transaction it is required to enable it on the Safe that it is connected to. For this it is possible to use the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
 
 ## Snapshot integration
 
@@ -117,4 +117,4 @@ event ProposalQuestionCreated(
 );
 ```
 
-There are different services available for this. E.g. the [OpenZepplin Defender Sentinel](https://docs.openzeppelin.com/defender/sentinel).
+There are different services available for this such as the [OpenZepplin Defender Sentinel](https://docs.openzeppelin.com/defender/sentinel).
