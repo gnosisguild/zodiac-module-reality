@@ -87,13 +87,13 @@ Once your space is configured you can attach transactions to you proposals via t
 
 <img src="./snapshot_module_add_tx.png"
      alt="Add DAO module transaction"
-     style="width:250px" />
+     width="250"/>
 <img src="./snapshot_module_tx_details.png"
      alt="Enter transactiond etails"
-     style="width:250px" />
+     width="250" />
 <img src="./snapshot_module_tx_confirm.png"
      alt="Check transaction details"
-     style="width:250px" />
+     width="250"/>
 
 4. Check preview of transactions
 
