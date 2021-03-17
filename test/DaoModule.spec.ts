@@ -32,7 +32,7 @@ const EIP712_TYPES = {
 const INVALIDATED_STATE = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-describe("DaoModule", async () => {
+describe.only("DaoModule", async () => {
 
     const baseSetup = deployments.createFixture(async () => {
         await deployments.fixture();
@@ -59,7 +59,7 @@ describe("DaoModule", async () => {
     })
     const [user1] = waffle.provider.getWallets();
 
-    describe("constructor", async () => {
+    describe.only("constructor", async () => {
         it("throws if timeout is 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
             await expect(
@@ -397,7 +397,7 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe.only("markProposalWithExpiredAnswerAsInvalid", async () => {
+    describe("markProposalWithExpiredAnswerAsInvalid", async () => {
         it("throws if answer cannot expire", async () => {
             const { module } = await setupTestWithTestExecutor();
         
