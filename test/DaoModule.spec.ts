@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { logGas, nextBlockTime } from "./utils";
+import { nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -32,7 +32,7 @@ const EIP712_TYPES = {
 const INVALIDATED_STATE = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-describe.only("DaoModule", async () => {
+describe("DaoModule", async () => {
 
     const baseSetup = deployments.createFixture(async () => {
         await deployments.fixture();
@@ -59,7 +59,7 @@ describe.only("DaoModule", async () => {
     })
     const [user1] = waffle.provider.getWallets();
 
-    describe.only("constructor", async () => {
+    describe("constructor", async () => {
         it("throws if timeout is 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
             await expect(

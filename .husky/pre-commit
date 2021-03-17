@@ -3,7 +3,7 @@
 
 # Redirect output to stderr.
 exec 1>&2
- 
+
 # prevent it.only or describe.only commited
 if [ "$allowonlytests" != "true" ] &&
     test $(git diff --cached | grep -E "\b(it|describe).only\("  | wc -l) != 0
