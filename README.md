@@ -95,15 +95,9 @@ Note: If the expiration time is set to `0` answers will never expire. This also 
 
 The contracts have been developed with [Solidity 0.8.0](https://github.com/ethereum/solidity/releases/tag/v0.8.0) in mind. This version of Solidity made all arithmetic checked by default, therefore eliminating the need for explicit overflow or underflow (or other arithmetic) checks.
 
-### Example
+### Setup Guide
 
-- `yarn build`
-- `yarn hardhat --network rinkeby setup --dao <safe_address> --oracle <realitio_address> --cooldown 60 --timeout 30`
-- `yarn hardhat --network rinkeby verify-etherscan --module <module_address> --dao <safe_address> --oracle <realitio_address> --cooldown 60 --timeout 30`
-- Enable module (e.g. with transaction builder and abi from `0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F`)
-- `yarn hardhat --network rinkeby addProposal --module <module_address> --proposal-file sample_proposal.json`
-- Resolve oracle (e.g. answer question on Rinkeby https://reality.eth.link/app/)
-- `yarn hardhat --network rinkeby executeProposal --module <module_address> --proposal-file sample_proposal.json`
+Follow our [setup guide](./docs/setup_guide.md) to get started with the DAO module
 
 ### Audits
 
