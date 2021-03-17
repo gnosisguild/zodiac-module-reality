@@ -97,7 +97,7 @@ The contracts have been developed with [Solidity 0.8.0](https://github.com/ether
 
 ### Setup Guide
 
-Follow our [setup guide](./docs/setup_guide.md) to get started with the DAO module
+Follow our [setup guide](./docs/setup_guide.md) to get started with the DAO module.
 
 ### Audits
 
