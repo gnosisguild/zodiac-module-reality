@@ -39,7 +39,7 @@ The template should have the following format:
 - The title will also be displayed in the Realitio web interface and MUST include two `%s` placeholders
   - The first placeholder is for the `id` of the proposal (e.g. a ipfs hash)
   - The second placeholder is the hash of the concatenation of the EIP-712 transaction hashes (see the [README](../README.md) for more information)
-- IMPORTANT: The template should make it clear when to vote how on your questions
+- IMPORTANT: The template should make it clear when and how to vote on your questions
   - An example can be found in the [🍯DAO requirements](https://cloudflare-ipfs.com/ipfs/QmeJwtwdG4mPzC8sESrW7zqixZqdHDYnREz6ar9GCewgz7/)
   - DISCLAIMER: DO NOT BLINDLY COPY THE REQUIREMENTS. You should check the requirements and make the adjustments for your setup.
 
@@ -52,7 +52,7 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
-Now that we have a template the setup hardhat task can be used to deploy a DAO module instance. The setup task requires the following parameters `dao` (the address of the Safe), `oracle` (the address of the Realitio contract) and `template` (the template to used with Realitio). There are also optional parameters for more information run `yarn hardhat setup --help`.
+Now that we have a template, a hardhat task can be used to deploy a DAO module instance. This setup task requires the following parameters: `dao` (the address of the Safe), `oracle` (the address of the Realitio contract) and `template` (the template to be used with Realitio). There are also optional parameters, for more information run `yarn hardhat setup --help`.
 
 An example for this on Rinkeby would be:
 `yarn hardhat --network rinkeby setup --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
@@ -70,7 +70,7 @@ To allow the DAO module to actually execute transaction it is required to enable
 
 ## Snapshot integration
 
-Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the DAO module plugin. For this the space configuration needs to include `"plugins": { "daoModule": { "address": "<module_address"} }`. An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
+Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the DAO module plugin. For this the space configuration needs to include `"plugins": { "daoModule": { "address": "<module_address>"} }`. An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
 
 Once your space is configured you can attach transactions to you proposals via the plugin section:
 
@@ -99,7 +99,7 @@ Once your space is configured you can attach transactions to you proposals via t
 
 ![Transactions preview](./snapshot_plugin_preview.png)
 
-Once the proposal has been resolved it is possible to use the plugin to submit the proposal to the DAO module via the plugin. 
+Once the proposal has been resolved it is possible to submit the proposal to the DAO module via the plugin. 
 
 This can also be done via the hardhat tasks provided in this repository. For more information run `yarn hardhat addProposal --help` or `yarn hardhat executeProposal --help`.
 
