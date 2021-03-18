@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { logGas, nextBlockTime } from "./utils";
+import { nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -397,7 +397,7 @@ describe("DaoModule", async () => {
         })
     })
 
-    describe.only("markProposalWithExpiredAnswerAsInvalid", async () => {
+    describe("markProposalWithExpiredAnswerAsInvalid", async () => {
         it("throws if answer cannot expire", async () => {
             const { module } = await setupTestWithTestExecutor();
         
