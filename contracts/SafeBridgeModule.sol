@@ -99,7 +99,7 @@ contract SafeBridgeModule {
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
-    function executeProposal(address to, uint256 value, bytes memory data, Enum.Operation operation)
+    function executeTransaction(address to, uint256 value, bytes memory data, Enum.Operation operation)
         public
         onlyValid()
     {
