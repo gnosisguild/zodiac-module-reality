@@ -5,6 +5,7 @@ import "./DaoModule.sol";
 import "./interfaces/RealitioV3.sol";
 
 contract DaoModuleETH is DaoModule {
+    /// @param _owner Address of the owner
     /// @param _executor Address of the executor (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
@@ -14,7 +15,8 @@ contract DaoModuleETH is DaoModule {
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(
-        Executor _executor,
+        address _owner,
+        address _executor,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -23,6 +25,7 @@ contract DaoModuleETH is DaoModule {
         uint256 templateId
     )
         DaoModule(
+            _owner,
             _executor,
             _oracle,
             timeout,
@@ -33,10 +36,11 @@ contract DaoModuleETH is DaoModule {
         )
     {}
 
-    function askQuestion(
-        string memory question,
-        uint256 nonce
-    ) internal override returns (bytes32) {
+    function askQuestion(string memory question, uint256 nonce)
+        internal
+        override
+        returns (bytes32)
+    {
         // Ask the question with a starting time of 0, so that it can be immediately answered
         return
             RealitioV3ETH(address(oracle)).askQuestionWithMinBond(
