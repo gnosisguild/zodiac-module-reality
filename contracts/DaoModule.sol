@@ -67,7 +67,7 @@ contract DaoModule {
     }
 
     function setUp(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) external {
-        require(!isInitialized, 'Module is already initialized!');
+        require(!isInitialized, 'Module is already initialized');
         require(timeout > 0, "Timeout has to be greater 0");
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         executor = _executor;
