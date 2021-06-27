@@ -62,7 +62,7 @@ describe("DaoModule", async () => {
     const [user1] = waffle.provider.getWallets();
 
     describe("setUp", async () => {
-        it("throws if is already iniialized", async () => {
+        it("throws if is already initialized", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
             const module = await Module.deploy()
             await expect(
