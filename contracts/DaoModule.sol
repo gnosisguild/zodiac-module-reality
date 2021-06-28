@@ -50,7 +50,7 @@ contract DaoModule {
     address public questionArbitrator;
     uint256 public minimumBond;
 
-    bool isInitialized = false;
+    bool public isInitialized = false;
 
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
     mapping(bytes32 => bytes32) public questionIds;
