@@ -39,7 +39,7 @@ contract DaoModule {
         string indexed proposalId
     );
 
-    event DaoModuleSetup(address indexed initiator, address indexed safe);
+    event DaoModuleSetup(address indexed initiator, address indexed executor);
 
     Executor public executor;
     Realitio public oracle;
@@ -49,8 +49,6 @@ contract DaoModule {
     uint32 public answerExpiration;
     address public questionArbitrator;
     uint256 public minimumBond;
-
-    bool public isInitialized = false;
 
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
     mapping(bytes32 => bytes32) public questionIds;
@@ -62,12 +60,8 @@ contract DaoModule {
         _;
     }
 
-    /// @dev Set isInitialized varible to true
-    /// this will happens when the master copy is deployed
-    /// but when a proxy is created it wont run this, hence,
-    /// allowing the proxy factory contract to run the setUp function
-    constructor() {
-        isInitialized = true;
+    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
+        setUp(_executor, _oracle, timeout, cooldown, expiration, bond, templateId);
     }
 
 
@@ -80,8 +74,8 @@ contract DaoModule {
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    function setUp(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) external {
-        require(!isInitialized, "Module is already initialized");
+    function setUp(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) public {
+        require(address(executor) == address(0), "Module is already initialized");
         require(timeout > 0, "Timeout has to be greater 0");
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         executor = _executor;
@@ -92,7 +86,6 @@ contract DaoModule {
         questionArbitrator = address(_executor);
         minimumBond = bond;
         template = templateId;
-        isInitialized = true;
 
         emit DaoModuleSetup(msg.sender, address(_executor));
     }

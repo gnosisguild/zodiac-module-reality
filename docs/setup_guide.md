@@ -52,10 +52,17 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
+This module can be deployed in two different ways, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factory-setup`) - In rinkeby the address of the Proxy Factory is: `0xE9E80739Af9D0DD8AaE6255c96a1266c059469ba` and the singleton of the DAO Module: `0x0049B9A81E602C846807873026C20CC56038E571`.
+
 Now that we have a template, a hardhat task can be used to deploy a DAO module instance. This setup task requires the following parameters: `dao` (the address of the Safe), `oracle` (the address of the Realitio contract) and `template` (the template to be used with Realitio). There are also optional parameters, for more information run `yarn hardhat setup --help`.
 
 An example for this on Rinkeby would be:
 `yarn hardhat --network rinkeby setup --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+
+or
+
+`yarn hardhat --network rinkeby factory-setup --factory 0xE9E80739Af9D0DD8AaE6255c96a1266c059469ba --singleton 0x0049B9A81E602C846807873026C20CC56038E571 --dao 0x38063380d21F2d7A2f093cF4FCedBf6A552A1f76 --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad
+`
 
 This should return the address of the deployed DAO module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
 
