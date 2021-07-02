@@ -46,11 +46,11 @@ task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory"
         console.log("Using the account:", caller.address);
 
         const FactoryAbi = [
-            `function deployModule(
+           `function deployModule(
                   address singleton, 
                   bytes memory initializer
-              ) public returns (address clone)`,
-          ];
+            ) public returns (address clone)`,
+        ];
         
         const Factory = new Contract(taskArgs.factory, FactoryAbi, caller)
         const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
@@ -67,7 +67,7 @@ task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory"
         ])
 
         const receipt = await Factory.deployModule(taskArgs.singleton, initParams).then((tx: any) => tx.wait(3));
-        console.log("Module deployed to: ", receipt.logs[1].address);
+        console.log("Module deployed to:", receipt.logs[1].address);
     });
 task("verifyEtherscan", "Verifies the contract on etherscan")
     .addParam("module", "Address of the module", undefined, types.string)

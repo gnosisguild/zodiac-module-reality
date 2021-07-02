@@ -61,12 +61,11 @@ An example for this on Rinkeby would be:
 
 or
 
-`yarn hardhat --network rinkeby factory-setup --factory 0xE9E80739Af9D0DD8AaE6255c96a1266c059469ba --singleton 0x0049B9A81E602C846807873026C20CC56038E571 --dao 0x38063380d21F2d7A2f093cF4FCedBf6A552A1f76 --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad
-`
+`yarn hardhat --network rinkeby factory-setup --factory <factory_address> --singleton <singleton_address> --dao <dao_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 This should return the address of the deployed DAO module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
 
-Once the module is deployed you should verify the source code. If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this. 
+Once the module is deployed you should verify the source code (Note: If you used the factory deployment the contract should be already verified). If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this. 
 
 An example for this on Rinkeby would be:
 `yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
