@@ -4,6 +4,9 @@ import { task, types } from "hardhat/config";
 import defaultTemplate from "./defaultTemplate.json";
 import { Contract } from "ethers";
 
+const FIRST_ADDRESS = "0x0000000000000000000000000000000000000001";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 task("setup", "Provides the clearing price to an auction")
     .addParam("dao", "Address of the DAO (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
@@ -28,7 +31,7 @@ task("setup", "Provides the clearing price to an auction")
 
 task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory")
     .addParam("factory", "Address of the Proxy Factory", undefined, types.string)
-    .addParam("singleton", "Address of the DAO Module Master Copy", undefined, types.string)
+    .addParam("mastercopy", "Address of the DAO Module Master Copy", undefined, types.string)
     .addParam("dao", "Address of the DAO (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
     .addParam(
@@ -47,9 +50,9 @@ task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory"
 
         const FactoryAbi = [
            `function deployModule(
-                  address singleton, 
+                  address masterCopy, 
                   bytes memory initializer
-            ) public returns (address clone)`,
+            ) public returns (address proxy)`,
         ];
         
         const Factory = new Contract(taskArgs.factory, FactoryAbi, caller)
@@ -66,7 +69,7 @@ task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory"
 
         ])
 
-        const receipt = await Factory.deployModule(taskArgs.singleton, initParams).then((tx: any) => tx.wait(3));
+        const receipt = await Factory.deployModule(taskArgs.mastercopy, initParams).then((tx: any) => tx.wait(3));
         console.log("Module deployed to:", receipt.logs[1].address);
     });
 task("verifyEtherscan", "Verifies the contract on etherscan")
@@ -110,5 +113,21 @@ task("createDaoTemplate", "Creates a question template on the oracle address")
         console.log("Template id:", id);
     });
 
+task("deployMasterCopy", "deploy a master copy of DAO Module").setAction(
+    async (_, hardhatRuntime) => {
+        const [caller] = await hardhatRuntime.ethers.getSigners();
+        console.log("Using the account:", caller.address);
+        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
+        const module = await Module.deploy(FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0);
+
+        await module.deployTransaction.wait(3);
+
+        console.log("Module deployed to:", module.address);
+        await hardhatRuntime.run("verify:verify", {
+            address: module.address,
+            constructorArguments: [FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0],
+        });
+    }
+);
 
 export { };
