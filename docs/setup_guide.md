@@ -70,7 +70,7 @@ To allow the DAO module to actually execute transaction it is required to enable
 
 ## Snapshot integration
 
-Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the DAO module plugin. For this the space configuration needs to include `"plugins": { "daoModule": { "address": "<module_address>"} }`. An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
+Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the DAO module plugin. For this the space configuration needs to include `"plugins": { "safeSnap": { "address": "<module_address>"} }`. An outdated example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/), where instead of `safeSnap` it still reads `daoModule` as required in a previous version.
 
 Once your space is configured you can attach transactions to you proposals via the plugin section:
 
