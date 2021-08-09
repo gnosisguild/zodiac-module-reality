@@ -1,26 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
+import "@gnosis/zodiac/contracts/core/Module.sol";
 import "./interfaces/Realitio.sol";
 
-contract Enum {
-    enum Operation {
-        Call, DelegateCall
-    }
-}
-
-interface Executor {
-    /// @dev Allows a Module to execute a transaction.
-    /// @param to Destination address of module transaction.
-    /// @param value Ether value of module transaction.
-    /// @param data Data payload of module transaction.
-    /// @param operation Operation type of module transaction.
-    function execTransactionFromModule(address to, uint256 value, bytes calldata data, Enum.Operation operation)
-        external
-        returns (bool success);
-}
-
-contract DaoModule {
+contract DaoModule is Module {
 
     bytes32 public constant INVALIDATED = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -41,7 +25,6 @@ contract DaoModule {
 
     event DaoModuleSetup(address indexed initiator, address indexed executor);
 
-    Executor public executor;
     Realitio public oracle;
     uint256 public template;
     uint32 public questionTimeout;
@@ -55,17 +38,13 @@ contract DaoModule {
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
 
-    modifier executorOnly() {
-        require(msg.sender == address(executor), "Not authorized");
-        _;
-    }
-
-    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
-        setUp(_executor, _oracle, timeout, cooldown, expiration, bond, templateId);
+    constructor(address _owner, address _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
+        setUp(_owner, _executor, _oracle, timeout, cooldown, expiration, bond, templateId);
     }
 
 
     /// @dev Initialize function, needs to be triggered when the proxy is created
+    /// @param _owner Address of the owner
     /// @param _executor Address of the executor (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
@@ -74,8 +53,8 @@ contract DaoModule {
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    function setUp(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) public {
-        require(address(executor) == address(0), "Module is already initialized");
+    function setUp(address _owner, address _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) public {
+        require(executor == address(0), "Module is already initialized");
         require(timeout > 0, "Timeout has to be greater 0");
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         executor = _executor;
@@ -87,13 +66,18 @@ contract DaoModule {
         minimumBond = bond;
         template = templateId;
 
+        if (_executor != address(0)) {
+            __Ownable_init();
+            transferOwnership(_owner);
+        }
+
         emit DaoModuleSetup(msg.sender, address(_executor));
     }
 
     /// @notice This can only be called by the executor
     function setQuestionTimeout(uint32 timeout)
         public
-        executorOnly()
+        onlyOwner
     {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
@@ -105,7 +89,7 @@ contract DaoModule {
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     function setQuestionCooldown(uint32 cooldown)
         public
-        executorOnly()
+        onlyOwner
     {
         uint32 expiration = answerExpiration;
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
@@ -119,7 +103,7 @@ contract DaoModule {
     /// @notice This can only be called by the executor
     function setAnswerExpiration(uint32 expiration)
         public
-        executorOnly()
+        onlyOwner
     {
         require(expiration == 0 || expiration - questionCooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         answerExpiration = expiration;
@@ -130,7 +114,7 @@ contract DaoModule {
     /// @notice This can only be called by the executor
     function setArbitrator(address arbitrator)
         public
-        executorOnly()
+        onlyOwner
     {
         questionArbitrator = arbitrator;
     }
@@ -140,7 +124,7 @@ contract DaoModule {
     /// @notice This can only be called by the executor
     function setMinimumBond(uint256 bond)
         public
-        executorOnly()
+        onlyOwner
     {
         minimumBond = bond;
     }
@@ -151,7 +135,7 @@ contract DaoModule {
     /// @notice This can only be called by the executor
     function setTemplate(uint256 templateId)
         public
-        executorOnly()
+        onlyOwner
     {
         template = templateId;
     }
@@ -214,7 +198,7 @@ contract DaoModule {
     /// @notice This can only be called by the executor
     function markProposalAsInvalidByHash(bytes32 questionHash)
         public
-        executorOnly()
+        onlyOwner
     {
         questionIds[questionHash] = INVALIDATED;
     }
@@ -283,7 +267,7 @@ contract DaoModule {
         // Mark transaction as executed
         executedProposalTransactions[questionHash][txHash] = true;
         // Execute the transaction via the executor.
-        require(executor.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+        require(exec(to, value, data, operation), "Module transaction failed");
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes

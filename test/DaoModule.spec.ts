@@ -48,15 +48,15 @@ describe("DaoModule", async () => {
     const setupTestWithTestExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.executor.address, base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(ZERO_ADDRESS, ZERO_ADDRESS, 42, 23, 0, 0, 1337);
-        await module.setUp(base.mock.address, base.mock.address, 42, 23, 0, 0, 1337)
+        const module = await Module.deploy(ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, 42, 23, 0, 0, 1337);
+        await module.setUp(base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337)
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
@@ -65,29 +65,29 @@ describe("DaoModule", async () => {
     describe("setUp", async () => {
         it("throws if is already initialized", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
-            const module = await Module.deploy(user1.address, user1.address, 42, 23, 0, 0, 1337)
+            const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
-                module.setUp(user1.address, user1.address, 0, 0, 0, 0, 0)
+                module.setUp(user1.address, user1.address, user1.address, 0, 0, 0, 0, 0)
             ).to.be.revertedWith("Module is already initialized")
         })
 
         it("throws if timeout is 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
             await expect(
-                Module.deploy(user1.address, user1.address, 0, 10, 100, 100, 1)
+                Module.deploy(user1.address, user1.address, user1.address, 0, 10, 100, 100, 1)
             ).to.be.revertedWith("Timeout has to be greater 0")
         })
             
         it("throws if not enough time between cooldown and expiration", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
             await expect(
-                Module.deploy(user1.address, user1.address, 1, 0, 59, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
             ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
         })
             
         it("answer expiration can be 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModule")
-            await Module.deploy(user1.address, user1.address, 1, 10, 0, 0, 0)
+            await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
         })
     })
 
@@ -96,7 +96,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setQuestionTimeout(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if timeout is 0", async () => {
@@ -128,7 +128,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setQuestionCooldown(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
@@ -192,7 +192,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setAnswerExpiration(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
@@ -235,7 +235,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setArbitrator(ethers.constants.AddressZero)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates arbitrator", async () => {
@@ -259,7 +259,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setMinimumBond(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates minimum bond", async () => {
@@ -283,7 +283,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setTemplate(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates template", async () => {
@@ -308,7 +308,7 @@ describe("DaoModule", async () => {
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
                 module.markProposalAsInvalidByHash(randomHash)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("marks unknown question id as invalid", async () => {
@@ -359,7 +359,7 @@ describe("DaoModule", async () => {
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
                 module.markProposalAsInvalid(randomHash, [randomHash])
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("marks unknown question id as invalid", async () => {
