@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "./interfaces/Realitio.sol";
+import "./interfaces/RealitioV3.sol";
 
 contract Enum {
-    enum Operation {
-        Call, DelegateCall
-    }
+    enum Operation {Call, DelegateCall}
 }
 
 interface Executor {
@@ -15,21 +13,26 @@ interface Executor {
     /// @param value Ether value of module transaction.
     /// @param data Data payload of module transaction.
     /// @param operation Operation type of module transaction.
-    function execTransactionFromModule(address to, uint256 value, bytes calldata data, Enum.Operation operation)
-        external
-        returns (bool success);
+    function execTransactionFromModule(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        Enum.Operation operation
+    ) external returns (bool success);
 }
 
-contract DaoModule {
+abstract contract DaoModule {
+    bytes32 public constant INVALIDATED =
+        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-    bytes32 public constant INVALIDATED = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
-    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
+        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
     //     "EIP712Domain(uint256 chainId,address verifyingContract)"
     // );
 
-    bytes32 public constant TRANSACTION_TYPEHASH = 0x72e9670a7ee00f5fbf1049b8c38e3f22fab7e9b85029e85cf9412f17fdd5c2ad;
+    bytes32 public constant TRANSACTION_TYPEHASH =
+        0x72e9670a7ee00f5fbf1049b8c38e3f22fab7e9b85029e85cf9412f17fdd5c2ad;
     // keccak256(
     //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
     // );
@@ -40,7 +43,7 @@ contract DaoModule {
     );
 
     Executor public immutable executor;
-    Realitio public immutable oracle;
+    RealitioV3 public immutable oracle;
     uint256 public template;
     uint32 public questionTimeout;
     uint32 public questionCooldown;
@@ -50,19 +53,31 @@ contract DaoModule {
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
     mapping(bytes32 => bytes32) public questionIds;
     // Mapping of questionHash to transactionHash to execution state
-    mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
+    mapping(bytes32 => mapping(bytes32 => bool))
+        public executedProposalTransactions;
 
     /// @param _executor Address of the executor (e.g. a Safe)
-    /// @param _oracle Address of the oracle (e.g. Realitio)
+    /// @param _oracle Address of the oracle (e.g. RealitioV3)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
     /// @param bond Minimum bond that is required for an answer to be accepted
-    /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
+    /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/RealitioV3/RealitioV3-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    constructor(Executor _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
+    constructor(
+        Executor _executor,
+        RealitioV3 _oracle,
+        uint32 timeout,
+        uint32 cooldown,
+        uint32 expiration,
+        uint256 bond,
+        uint256 templateId
+    ) {
         require(timeout > 0, "Timeout has to be greater 0");
-        require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
+        require(
+            expiration == 0 || expiration - cooldown >= 60,
+            "There need to be at least 60s between end of cooldown and expiration"
+        );
         executor = _executor;
         oracle = _oracle;
         answerExpiration = expiration;
@@ -79,10 +94,7 @@ contract DaoModule {
     }
 
     /// @notice This can only be called by the executor
-    function setQuestionTimeout(uint32 timeout)
-        public
-        executorOnly()
-    {
+    function setQuestionTimeout(uint32 timeout) public executorOnly() {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
     }
@@ -91,12 +103,12 @@ contract DaoModule {
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @notice This can only be called by the executor
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    function setQuestionCooldown(uint32 cooldown)
-        public
-        executorOnly()
-    {
+    function setQuestionCooldown(uint32 cooldown) public executorOnly() {
         uint32 expiration = answerExpiration;
-        require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
+        require(
+            expiration == 0 || expiration - cooldown >= 60,
+            "There need to be at least 60s between end of cooldown and expiration"
+        );
         questionCooldown = cooldown;
     }
 
@@ -105,42 +117,33 @@ contract DaoModule {
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     /// @notice This can only be called by the executor
-    function setAnswerExpiration(uint32 expiration)
-        public
-        executorOnly()
-    {
-        require(expiration == 0 || expiration - questionCooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
+    function setAnswerExpiration(uint32 expiration) public executorOnly() {
+        require(
+            expiration == 0 || expiration - questionCooldown >= 60,
+            "There need to be at least 60s between end of cooldown and expiration"
+        );
         answerExpiration = expiration;
     }
 
     /// @dev Sets the question arbitrator that will be used for future questions.
     /// @param arbitrator Address of the arbitrator
     /// @notice This can only be called by the executor
-    function setArbitrator(address arbitrator)
-        public
-        executorOnly()
-    {
+    function setArbitrator(address arbitrator) public executorOnly() {
         questionArbitrator = arbitrator;
     }
 
     /// @dev Sets the minimum bond that is required for an answer to be accepted.
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @notice This can only be called by the executor
-    function setMinimumBond(uint256 bond)
-        public
-        executorOnly()
-    {
+    function setMinimumBond(uint256 bond) public executorOnly() {
         minimumBond = bond;
     }
 
     /// @dev Sets the template that should be used for future questions.
     /// @param templateId ID of the template that should be used for proposal questions
-    /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
+    /// @notice Check https://github.com/RealitioV3/RealitioV3-dapp#structuring-and-fetching-information for more information
     /// @notice This can only be called by the executor
-    function setTemplate(uint256 templateId)
-        public
-        executorOnly()
-    {
+    function setTemplate(uint256 templateId) public executorOnly() {
         template = templateId;
     }
 
@@ -148,7 +151,9 @@ contract DaoModule {
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @notice The nonce used for the question by this function is always 0
-    function addProposal(string memory proposalId, bytes32[] memory txHashes) public {
+    function addProposal(string memory proposalId, bytes32[] memory txHashes)
+        public
+    {
         addProposalWithNonce(proposalId, txHashes, 0);
     }
 
@@ -156,11 +161,11 @@ contract DaoModule {
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param nonce Nonce that should be used when asking the question on the oracle
-    function addProposalWithNonce(string memory proposalId, bytes32[] memory txHashes, uint256 nonce) public {
-        // We load some storage variables into memory to save gas
-        uint256 templateId = template;
-        uint32 timeout = questionTimeout;
-        address arbitrator = questionArbitrator;
+    function addProposalWithNonce(
+        string memory proposalId,
+        bytes32[] memory txHashes,
+        uint256 nonce
+    ) public {
         // We generate the question string used for the oracle
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
@@ -168,29 +173,41 @@ contract DaoModule {
             // Previous nonce must have been invalidated by the oracle.
             // However, if the proposal was internally invalidated, it should not be possible to ask it again.
             bytes32 currentQuestionId = questionIds[questionHash];
-            require(currentQuestionId != INVALIDATED, "This proposal has been marked as invalid");
-            require(oracle.resultFor(currentQuestionId) == INVALIDATED, "Previous proposal was not invalidated");
+            require(
+                currentQuestionId != INVALIDATED,
+                "This proposal has been marked as invalid"
+            );
+            require(
+                oracle.resultFor(currentQuestionId) == INVALIDATED,
+                "Previous proposal was not invalidated"
+            );
         } else {
-            require(questionIds[questionHash] == bytes32(0), "Proposal has already been submitted");
+            require(
+                questionIds[questionHash] == bytes32(0),
+                "Proposal has already been submitted"
+            );
         }
-        bytes32 expectedQuestionId = getQuestionId(
-            templateId, question, arbitrator, timeout, 0, nonce
-        );
+        bytes32 expectedQuestionId = getQuestionId(question, nonce);
         // Set the question hash for this quesion id
         questionIds[questionHash] = expectedQuestionId;
-        // Ask the question with a starting time of 0, so that it can be immediately answered
-        bytes32 questionId = oracle.askQuestion(templateId, question, arbitrator, timeout, 0, nonce);
+        bytes32 questionId = askQuestion(question, nonce);
         require(expectedQuestionId == questionId, "Unexpected question id");
         emit ProposalQuestionCreated(questionId, proposalId);
     }
+
+    function askQuestion(
+        string memory question,
+        uint256 nonce
+    ) internal virtual returns (bytes32);
 
     /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @notice This can only be called by the executor
-    function markProposalAsInvalid(string memory proposalId, bytes32[] memory txHashes)
-        public
-        // Executor only is checked in markProposalAsInvalidByHash(bytes32)
+    function markProposalAsInvalid(
+        string memory proposalId,
+        bytes32[] memory txHashes
+    ) public // Executor only is checked in markProposalAsInvalidByHash(bytes32)
     {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
@@ -216,10 +233,19 @@ contract DaoModule {
         require(expirationDuration > 0, "Answers are valid forever");
         bytes32 questionId = questionIds[questionHash];
         require(questionId != INVALIDATED, "Proposal is already invalidated");
-        require(questionId != bytes32(0), "No question id set for provided proposal");
-        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Only positive answers can expire");
+        require(
+            questionId != bytes32(0),
+            "No question id set for provided proposal"
+        );
+        require(
+            oracle.resultFor(questionId) == bytes32(uint256(1)),
+            "Only positive answers can expire"
+        );
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
-        require(finalizeTs + uint256(expirationDuration) < block.timestamp, "Answer has not expired yet");
+        require(
+            finalizeTs + uint256(expirationDuration) < block.timestamp,
+            "Answer has not expired yet"
+        );
         questionIds[questionHash] = INVALIDATED;
     }
 
@@ -231,8 +257,23 @@ contract DaoModule {
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
     /// @notice The txIndex used by this function is always 0
-    function executeProposal(string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation) public {
-        executeProposalWithIndex(proposalId, txHashes, to, value, data, operation, 0);
+    function executeProposal(
+        string memory proposalId,
+        bytes32[] memory txHashes,
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation
+    ) public {
+        executeProposalWithIndex(
+            proposalId,
+            txHashes,
+            to,
+            value,
+            data,
+            operation,
+            0
+        );
     }
 
     /// @dev Executes the transactions of a proposal via the executor if accepted
@@ -243,50 +284,101 @@ contract DaoModule {
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
     /// @param txIndex Index of the transaction hash in txHashes. This is used as the nonce for the transaction, to make the tx hash unique
-    function executeProposalWithIndex(string memory proposalId, bytes32[] memory txHashes, address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 txIndex) public {
+    function executeProposalWithIndex(
+        string memory proposalId,
+        bytes32[] memory txHashes,
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        uint256 txIndex
+    ) public {
         // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
-        bytes32 questionHash = keccak256(bytes(buildQuestion(proposalId, txHashes)));
+        bytes32 questionHash =
+            keccak256(bytes(buildQuestion(proposalId, txHashes)));
         // Lookup question id for this proposal
         bytes32 questionId = questionIds[questionHash];
         // Question hash needs to set to be eligible for execution
-        require(questionId != bytes32(0), "No question id set for provided proposal");
+        require(
+            questionId != bytes32(0),
+            "No question id set for provided proposal"
+        );
         require(questionId != INVALIDATED, "Proposal has been invalidated");
 
-        bytes32 txHash = getTransactionHash(to, value, data, operation, txIndex);
+        bytes32 txHash =
+            getTransactionHash(to, value, data, operation, txIndex);
         require(txHashes[txIndex] == txHash, "Unexpected transaction hash");
 
         // Check that the result of the question is 1 (true)
-        require(oracle.resultFor(questionId) == bytes32(uint256(1)), "Transaction was not approved");
+        require(
+            oracle.resultFor(questionId) == bytes32(uint256(1)),
+            "Transaction was not approved"
+        );
         uint256 minBond = minimumBond;
-        require(minBond == 0 || minBond <= oracle.getBond(questionId), "Bond on question not high enough");
+        require(
+            minBond == 0 || minBond <= oracle.getBond(questionId),
+            "Bond on question not high enough"
+        );
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
         // The answer is valid in the time after the cooldown and before the expiration time (if set).
-        require(finalizeTs + uint256(questionCooldown) < block.timestamp, "Wait for additional cooldown");
+        require(
+            finalizeTs + uint256(questionCooldown) < block.timestamp,
+            "Wait for additional cooldown"
+        );
         uint32 expiration = answerExpiration;
-        require(expiration == 0 || finalizeTs + uint256(expiration) >= block.timestamp, "Answer has expired");
+        require(
+            expiration == 0 ||
+                finalizeTs + uint256(expiration) >= block.timestamp,
+            "Answer has expired"
+        );
         // Check this is either the first transaction in the list or that the previous question was already approved
-        require(txIndex == 0 || executedProposalTransactions[questionHash][txHashes[txIndex - 1]], "Previous transaction not executed yet");
+        require(
+            txIndex == 0 ||
+                executedProposalTransactions[questionHash][
+                    txHashes[txIndex - 1]
+                ],
+            "Previous transaction not executed yet"
+        );
         // Check that this question was not executed yet
-        require(!executedProposalTransactions[questionHash][txHash], "Cannot execute transaction again");
+        require(
+            !executedProposalTransactions[questionHash][txHash],
+            "Cannot execute transaction again"
+        );
         // Mark transaction as executed
         executedProposalTransactions[questionHash][txHash] = true;
         // Execute the transaction via the executor.
-        require(executor.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+        require(
+            executor.execTransactionFromModule(to, value, data, operation),
+            "Module transaction failed"
+        );
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes
     /// @param proposalId Id of the proposal that proposes to execute the transactions represented by the txHashes
     /// @param txHashes EIP-712 Hashes of the transactions that should be executed
-    function buildQuestion(string memory proposalId, bytes32[] memory txHashes) public pure returns(string memory) {
-        string memory txsHash = bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
+    function buildQuestion(string memory proposalId, bytes32[] memory txHashes)
+        public
+        pure
+        returns (string memory)
+    {
+        string memory txsHash =
+            bytes32ToAsciiString(keccak256(abi.encodePacked(txHashes)));
         return string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
     }
 
     /// @dev Generate the question id.
     /// @notice It is required that this is the same as for the oracle implementation used.
-    function getQuestionId(uint256 templateId, string memory question, address arbitrator, uint32 timeout, uint32 openingTs, uint256 nonce) public view returns(bytes32) {
-        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
-        return keccak256(abi.encodePacked(contentHash, arbitrator, timeout, this, nonce));
+    function getQuestionId(
+        string memory question,
+        uint256 nonce
+    ) public view returns (bytes32) {
+        // Ask the question with a starting time of 0, so that it can be immediately answered
+        bytes32 contentHash =
+            keccak256(abi.encodePacked(template, uint32(0), question));
+        return
+            keccak256(
+                abi.encodePacked(contentHash, questionArbitrator, questionTimeout, minimumBond, oracle, this, nonce)
+            );
     }
 
     /// @dev Returns the chain id used by this contract.
@@ -306,23 +398,51 @@ contract DaoModule {
         bytes memory data,
         Enum.Operation operation,
         uint256 nonce
-    ) public view returns(bytes memory) {
+    ) public view returns (bytes memory) {
         uint256 chainId = getChainId();
-        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, this));
-        bytes32 transactionHash = keccak256(
-            abi.encode(TRANSACTION_TYPEHASH, to, value, keccak256(data), operation, nonce)
-        );
-        return abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, transactionHash);
+        bytes32 domainSeparator =
+            keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, this));
+        bytes32 transactionHash =
+            keccak256(
+                abi.encode(
+                    TRANSACTION_TYPEHASH,
+                    to,
+                    value,
+                    keccak256(data),
+                    operation,
+                    nonce
+                )
+            );
+        return
+            abi.encodePacked(
+                bytes1(0x19),
+                bytes1(0x01),
+                domainSeparator,
+                transactionHash
+            );
     }
 
-    function getTransactionHash(address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public view returns(bytes32) {
-        return keccak256(generateTransactionHashData(to, value, data, operation, nonce));
+    function getTransactionHash(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        uint256 nonce
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                generateTransactionHashData(to, value, data, operation, nonce)
+            );
     }
 
-    function bytes32ToAsciiString(bytes32 _bytes) internal pure returns (string memory) {
+    function bytes32ToAsciiString(bytes32 _bytes)
+        internal
+        pure
+        returns (string memory)
+    {
         bytes memory s = new bytes(64);
         for (uint256 i = 0; i < 32; i++) {
-            uint8 b = uint8(bytes1(_bytes << i * 8));
+            uint8 b = uint8(bytes1(_bytes << (i * 8)));
             uint8 hi = uint8(b) / 16;
             uint8 lo = uint8(b) % 16;
             s[2 * i] = char(hi);
