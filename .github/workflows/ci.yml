@@ -1,5 +1,5 @@
 name: dao-module
-on: [push]
+on: [pr]
 
 jobs:
   tests:
