@@ -75,7 +75,7 @@ contract DaoModule is Module {
                 uint256
             )
         );
-        require(executor == address(0), "Module is already initialized");
+        require(!initialized, "Module is already initialized");
         require(timeout > 0, "Timeout has to be greater 0");
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");
         executor = _executor;
@@ -90,6 +90,7 @@ contract DaoModule is Module {
         if (_executor != address(0)) {
             __Ownable_init();
             transferOwnership(_owner);
+            initialized = true;
         }
 
         emit DaoModuleSetup(msg.sender, address(_executor));
