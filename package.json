@@ -1,5 +1,5 @@
 {
-  "name": "@gnosis/dao-module",
+  "name": "@zodiac/dao-module",
   "version": "1.0.0",
   "description": "Snapshot DAO oracle module for the Gnosis Safe",
   "directories": {

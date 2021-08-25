@@ -38,12 +38,6 @@ contract DaoModule is Module {
     // Mapping of questionHash to transactionHash to execution state
     mapping(bytes32 => mapping(bytes32 => bool)) public executedProposalTransactions;
 
-    constructor(address _owner, address _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
-        setUp(_owner, _executor, _oracle, timeout, cooldown, expiration, bond, templateId);
-    }
-
-
-    /// @dev Initialize function, needs to be triggered when the proxy is created
     /// @param _owner Address of the owner
     /// @param _executor Address of the executor (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
@@ -53,7 +47,34 @@ contract DaoModule is Module {
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    function setUp(address _owner, address _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) public {
+    constructor(address _owner, address _executor, Realitio _oracle, uint32 timeout, uint32 cooldown, uint32 expiration, uint256 bond, uint256 templateId) {
+        bytes memory initParams = abi.encode(_owner, _executor, _oracle, timeout, cooldown, expiration, bond, templateId);
+        setUp(initParams);
+    }
+
+    function setUp(bytes memory initParams) override public {
+        (
+            address _owner,
+            address _executor,
+            Realitio _oracle,
+            uint32 timeout,
+            uint32 cooldown,
+            uint32 expiration,
+            uint256 bond,
+            uint256 templateId
+        ) = abi.decode(
+            initParams,
+            (
+                address,
+                address,
+                Realitio,
+                uint32,
+                uint32,
+                uint32,
+                uint256,
+                uint256
+            )
+        );
         require(executor == address(0), "Module is already initialized");
         require(timeout > 0, "Timeout has to be greater 0");
         require(expiration == 0 || expiration - cooldown >= 60 , "There need to be at least 60s between end of cooldown and expiration");

@@ -3,6 +3,7 @@ import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
+import { AbiCoder } from "ethers/lib/utils";
 
 const EIP712_TYPES = {
     "Transaction": [
@@ -34,6 +35,7 @@ const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 describe("DaoModule", async () => {
+    let inititializeParams: string;
 
     const baseSetup = deployments.createFixture(async () => {
         await deployments.fixture();
@@ -42,6 +44,10 @@ describe("DaoModule", async () => {
         const Mock = await hre.ethers.getContractFactory("MockContract");
         const mock = await Mock.deploy();
         const oracle = await hre.ethers.getContractAt("Realitio", mock.address);
+        inititializeParams = new AbiCoder().encode(
+            ["address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 
+            [mock.address, mock.address, mock.address, 42, 23, 0, 0, 1337]
+        )
         return { Executor, executor, module, mock, oracle };
     })
 
@@ -56,18 +62,19 @@ describe("DaoModule", async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModule");
         const module = await Module.deploy(ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, 42, 23, 0, 0, 1337);
-        await module.setUp(base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337)
+        await module.setUp(inititializeParams)
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
 
 
-    describe("setUp", async () => {
+    describe("setUp", () => {
         it("throws if is already initialized", async () => {
+            await baseSetup()
             const Module = await hre.ethers.getContractFactory("DaoModule")
             const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
-                module.setUp(user1.address, user1.address, user1.address, 0, 0, 0, 0, 0)
+                module.setUp(inititializeParams)
             ).to.be.revertedWith("Module is already initialized")
         })
 

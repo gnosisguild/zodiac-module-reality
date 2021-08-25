@@ -52,7 +52,7 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
-Hardhat tasks can be used to deploy a dao module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the DAO Module: `0xE2D98EedCE511570eC32Aca3d7fc642a9e350783`.
+Hardhat tasks can be used to deploy a dao module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the DAO Module: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
 
 Now that we have a template, a hardhat task can be used to deploy a DAO module instance. These tasks requires the following parameters:
 
@@ -68,7 +68,7 @@ An example for this on Rinkeby would be:
 
 or
 
-`yarn hardhat --network rinkeby factory-setup --factory <factory_address> --mastercopy <mastercopy_address> --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby factorySetup --factory <factory_address> --mastercopy <mastercopy_address> --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 This should return the address of the deployed DAO module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
 
