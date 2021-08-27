@@ -57,12 +57,12 @@ abstract contract DaoModule {
         public executedProposalTransactions;
 
     /// @param _executor Address of the executor (e.g. a Safe)
-    /// @param _oracle Address of the oracle (e.g. RealitioV3)
+    /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
     /// @param bond Minimum bond that is required for an answer to be accepted
-    /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/RealitioV3/RealitioV3-dapp#structuring-and-fetching-information)
+    /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(
         Executor _executor,
@@ -141,7 +141,7 @@ abstract contract DaoModule {
 
     /// @dev Sets the template that should be used for future questions.
     /// @param templateId ID of the template that should be used for proposal questions
-    /// @notice Check https://github.com/RealitioV3/RealitioV3-dapp#structuring-and-fetching-information for more information
+    /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
     /// @notice This can only be called by the executor
     function setTemplate(uint256 templateId) public executorOnly() {
         template = templateId;
