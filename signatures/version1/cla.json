@@ -1,3 +1,12 @@
 {
-  "signedContributors": []
+  "signedContributors": [
+    {
+      "name": "cbrzn",
+      "id": 21031138,
+      "comment_id": 898537856,
+      "created_at": "2021-08-13T15:19:57Z",
+      "repoId": 332831056,
+      "pullRequestNo": 27
+    }
+  ]
 }
