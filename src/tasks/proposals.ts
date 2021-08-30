@@ -46,7 +46,7 @@ task("addProposal", "Adds a proposal question")
             console.log("Transaction:", tx.hash);
         });
 
-task("showProposal", "Shows proposal quesion details")
+task("showProposal", "Shows proposal question details")
         .addParam("module", "Address of the module", undefined, types.string)
         .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
         .setAction(async (taskArgs, hardhatRuntime) => {
