@@ -3,12 +3,14 @@ import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
 import defaultTemplate from "./defaultTemplate.json";
 import { Contract } from "ethers";
+import { AbiCoder } from "ethers/lib/utils";
 
 const FIRST_ADDRESS = "0x0000000000000000000000000000000000000001";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 task("setup", "Provides the clearing price to an auction")
-    .addParam("dao", "Address of the DAO (e.g. Safe)", undefined, types.string)
+    .addParam("owner", "Address of the owner", undefined, types.string)
+    .addParam("executor", "Address of the executor (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
     .addParam(
         "template", 
@@ -24,15 +26,16 @@ task("setup", "Provides the clearing price to an auction")
         const [caller] = await hardhatRuntime.ethers.getSigners();
         console.log("Using the account:", caller.address);
         const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(taskArgs.dao, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template);
-
+        const module = await Module.deploy(taskArgs.owner, taskArgs.executor, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template);
+        
         console.log("Module deployed to:", module.address);
     });
 
-task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory")
+task("factorySetup", "Deploy and initialize DAO Module through a Proxy Factory")
     .addParam("factory", "Address of the Proxy Factory", undefined, types.string)
     .addParam("mastercopy", "Address of the DAO Module Master Copy", undefined, types.string)
-    .addParam("dao", "Address of the DAO (e.g. Safe)", undefined, types.string)
+    .addParam("owner", "Address of the owner", undefined, types.string)
+    .addParam("executor", "Address of the executor (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
     .addParam(
         "template", 
@@ -58,23 +61,29 @@ task("factory-setup", "Deploy and initialize DAO Module through a Proxy Factory"
         const Factory = new Contract(taskArgs.factory, FactoryAbi, caller)
         const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
 
-        const initParams = Module.interface.encodeFunctionData('setUp', [
-            taskArgs.dao, 
-            taskArgs.oracle,
-            taskArgs.timeout,
-            taskArgs.cooldown,
-            taskArgs.expiration,
-            taskArgs.bond,
-            taskArgs.template
+        const encodedParams = new AbiCoder().encode(
+            ["address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 
+            [
+                taskArgs.owner,
+                taskArgs.executor,
+                taskArgs.oracle,
+                taskArgs.timeout,
+                taskArgs.cooldown,
+                taskArgs.expiration,
+                taskArgs.bond,
+                taskArgs.template
+            ]
+        )
 
-        ])
+        const initParams = Module.interface.encodeFunctionData('setUp', [encodedParams])
 
         const receipt = await Factory.deployModule(taskArgs.mastercopy, initParams).then((tx: any) => tx.wait(3));
         console.log("Module deployed to:", receipt.logs[1].address);
     });
 task("verifyEtherscan", "Verifies the contract on etherscan")
     .addParam("module", "Address of the module", undefined, types.string)
-    .addParam("dao", "Address of the DAO (e.g. Safe)", undefined, types.string)
+    .addParam("owner", "Address of the owner", undefined, types.string)
+    .addParam("executor", "Address of the executor (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
     .addParam(
         "template", 
@@ -90,7 +99,7 @@ task("verifyEtherscan", "Verifies the contract on etherscan")
         await hardhatRuntime.run("verify", {
             address: taskArgs.module,
             constructorArgsParams: [
-                taskArgs.dao, taskArgs.oracle, `${taskArgs.timeout}`, `${taskArgs.cooldown}`, `${taskArgs.expiration}`, `${taskArgs.bond}`, taskArgs.template
+                taskArgs.owner, taskArgs.executor, taskArgs.oracle, `${taskArgs.timeout}`, `${taskArgs.cooldown}`, `${taskArgs.expiration}`, `${taskArgs.bond}`, taskArgs.template
             ]
         })
     });
@@ -118,14 +127,14 @@ task("deployMasterCopy", "deploy a master copy of DAO Module").setAction(
         const [caller] = await hardhatRuntime.ethers.getSigners();
         console.log("Using the account:", caller.address);
         const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0);
+        const module = await Module.deploy(FIRST_ADDRESS, FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0);
 
         await module.deployTransaction.wait(3);
 
         console.log("Module deployed to:", module.address);
         await hardhatRuntime.run("verify:verify", {
             address: module.address,
-            constructorArguments: [FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0],
+            constructorArguments: [FIRST_ADDRESS, FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0],
         });
     }
 );

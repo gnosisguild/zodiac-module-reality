@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { nextBlockTime } from "./utils";
+import { buildMockInitializerParams, nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -33,7 +33,7 @@ const INVALIDATED_STATE = "0xfffffffffffffffffffffffffffffffffffffffffffffffffff
 const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
-describe("DaoModule", async () => {
+describe("DaoModuleETH", async () => {
 
     const baseSetup = deployments.createFixture(async () => {
         await deployments.fixture();
@@ -41,53 +41,60 @@ describe("DaoModule", async () => {
         const executor = await Executor.deploy();
         const Mock = await hre.ethers.getContractFactory("MockContract");
         const mock = await Mock.deploy();
-        const oracle = await hre.ethers.getContractAt("Realitio", mock.address);
+        const oracle = await hre.ethers.getContractAt("RealitioV3ETH", mock.address);
         return { Executor, executor, module, mock, oracle };
     })
 
     const setupTestWithTestExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
-        const Module = await hre.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const Module = await hre.ethers.getContractFactory("DaoModuleETH");
+        const module = await Module.deploy(base.executor.address, base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
-        const Module = await hre.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(ZERO_ADDRESS, ZERO_ADDRESS, 42, 23, 0, 0, 1337);
-        await module.setUp(base.mock.address, base.mock.address, 42, 23, 0, 0, 1337)
+        const Module = await hre.ethers.getContractFactory("DaoModuleETH");
+        const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
 
 
-    describe("setUp", async () => {
+    describe("setUp", () => {
         it("throws if is already initialized", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModule")
-            const module = await Module.deploy(user1.address, user1.address, 42, 23, 0, 0, 1337)
+            const { mock } = await baseSetup()
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
-                module.setUp(user1.address, user1.address, 0, 0, 0, 0, 0)
-            ).to.be.revertedWith("Module is already initialized")
+                module.setUp(buildMockInitializerParams(mock))
+                ).to.be.revertedWith("Module is already initialized")
+            })
+            
+        it("throws if executor is zero address", async () => {
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            await expect(
+                Module.deploy(user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337)
+            ).to.be.revertedWith("Executor can not be zero address")
         })
 
         it("throws if timeout is 0", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModule")
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
             await expect(
-                Module.deploy(user1.address, user1.address, 0, 10, 100, 100, 1)
+                Module.deploy(user1.address, user1.address, user1.address, 0, 10, 100, 100, 1)
             ).to.be.revertedWith("Timeout has to be greater 0")
         })
             
         it("throws if not enough time between cooldown and expiration", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModule")
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
             await expect(
-                Module.deploy(user1.address, user1.address, 1, 0, 59, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
             ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
         })
             
         it("answer expiration can be 0", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModule")
-            await Module.deploy(user1.address, user1.address, 1, 10, 0, 0, 0)
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
         })
     })
 
@@ -96,7 +103,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setQuestionTimeout(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if timeout is 0", async () => {
@@ -128,7 +135,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setQuestionCooldown(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
@@ -192,7 +199,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setAnswerExpiration(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
@@ -235,7 +242,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setArbitrator(ethers.constants.AddressZero)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates arbitrator", async () => {
@@ -259,7 +266,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setMinimumBond(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates minimum bond", async () => {
@@ -283,7 +290,7 @@ describe("DaoModule", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setTemplate(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates template", async () => {
@@ -308,7 +315,7 @@ describe("DaoModule", async () => {
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
                 module.markProposalAsInvalidByHash(randomHash)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("marks unknown question id as invalid", async () => {
@@ -332,9 +339,9 @@ describe("DaoModule", async () => {
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
 
             await expect(
                 module.addProposal(id, [txHash])
@@ -359,7 +366,7 @@ describe("DaoModule", async () => {
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
                 module.markProposalAsInvalid(randomHash, [randomHash])
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("marks unknown question id as invalid", async () => {
@@ -387,9 +394,9 @@ describe("DaoModule", async () => {
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
 
             await expect(
                 module.addProposal(id, [txHash])
@@ -468,11 +475,11 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
 
             const block = await ethers.provider.getBlock("latest")
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
             await module.addProposal(id, [txHash])
 
@@ -491,12 +498,12 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
 
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await module.addProposal(id, [txHash])
 
@@ -515,12 +522,12 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
 
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
             await module.addProposal(id, [txHash])
 
@@ -577,7 +584,7 @@ describe("DaoModule", async () => {
     describe("addProposal", async () => {
         it("throws if unexpected question id is returned", async () => {
             const { module, mock, oracle } = await setupTestWithTestExecutor();
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), 42)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), 42)
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
@@ -591,8 +598,8 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
+            const questionId = await module.getQuestionId(question, 0);
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId);
 
             const markInvalid = module.interface.encodeFunctionData(
                 "markProposalAsInvalid",
@@ -611,8 +618,8 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
+            const questionId = await module.getQuestionId(question, 0);
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId);
 
             await module.addProposal(id, [txHash])
 
@@ -627,8 +634,8 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0);
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId);
+            const questionId = await module.getQuestionId(question, 0);
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId);
 
             await module.addProposal(id, [txHash])
 
@@ -643,15 +650,15 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Proposal has already been submitted");
         })
 
-        it("calls askQuestion with correct data", async () => {
+        it("calls askQuestionWithMinBond with correct data", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
 
             await expect(
                 module.addProposal(id, [txHash])
@@ -661,7 +668,7 @@ describe("DaoModule", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 0])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBond", [1337, question, executor.address, 42, 0, 0, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -671,15 +678,48 @@ describe("DaoModule", async () => {
         })
     })
 
+    it("calls askQuestionWithMinBond with correct data when minimum bond is set", async () => {
+        const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
+        const id = "some_random_id";
+        const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
+
+        const setMinimumBond = module.interface.encodeFunctionData(
+            "setMinimumBond",
+            [7331]
+        )
+        await executor.exec(module.address, 0, setMinimumBond)
+
+        const question = await module.buildQuestion(id, [txHash]);
+        const questionId = await module.getQuestionId(question, 0)
+        const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
+        await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
+
+        await expect(
+            module.addProposal(id, [txHash])
+        ).to.emit(module, "ProposalQuestionCreated").withArgs(questionId, id)
+
+        expect(
+            await module.questionIds(questionHash)
+        ).to.be.deep.equals(questionId)
+
+        const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBond", [1337, question, executor.address, 42, 0, 0, 7331])
+        expect(
+            (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
+        ).to.be.equals(1);
+        expect(
+            (await mock.callStatic.invocationCount()).toNumber()
+        ).to.be.equals(1);
+    })
+
     describe("addProposalWithNonce", async () => {
         it("throws if previous nonce was not invalid", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), 42)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), 42)
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             const question = await module.buildQuestion(id, [txHash]);
-            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            const previousQuestionId = await module.getQuestionId(question, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), previousQuestionId)
             await module.addProposal(id, [txHash])
 
             await expect(
@@ -687,19 +727,19 @@ describe("DaoModule", async () => {
             ).to.be.revertedWith("Previous proposal was not invalidated");
         })
 
-        it("calls askQuestion with correct data", async () => {
+        it("calls askQuestionWithMinBond with correct data", async () => {
             const { module, mock, oracle, executor } = await setupTestWithTestExecutor();
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
+            const questionId = await module.getQuestionId(question, 1)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            const previousQuestionId = await module.getQuestionId(question, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), previousQuestionId)
             await module.addProposal(id, [txHash])
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             const resultForCalldata = oracle.interface.encodeFunctionData("resultFor", [previousQuestionId])
             await mock.givenCalldataReturnUint(resultForCalldata, INVALIDATED_STATE)
 
@@ -711,7 +751,7 @@ describe("DaoModule", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 1])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBond", [1337, question, executor.address, 42, 0, 1, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -728,8 +768,8 @@ describe("DaoModule", async () => {
 
             const question = await module.buildQuestion(id, [txHash]);
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            const previousQuestionId = await module.getQuestionId(question, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), previousQuestionId)
             await module.addProposal(id, [txHash])
 
             const updateQuestionTimeout = module.interface.encodeFunctionData(
@@ -738,8 +778,8 @@ describe("DaoModule", async () => {
             )
             await executor.exec(module.address, 0, updateQuestionTimeout)
 
-            const questionId = await module.getQuestionId(1337, question, executor.address, 23, 0, 11)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            const questionId = await module.getQuestionId(question, 11)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
 
             await expect(
@@ -749,7 +789,7 @@ describe("DaoModule", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 23, 0, 11])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBond", [1337, question, executor.address, 23, 0, 11, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -765,13 +805,13 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
+            const questionId = await module.getQuestionId(question, 1)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            const previousQuestionId = await module.getQuestionId(question, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), previousQuestionId)
             await module.addProposal(id, [txHash])
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
 
             await expect(
@@ -782,8 +822,8 @@ describe("DaoModule", async () => {
             ).to.be.deep.equals(questionId)
 
             // Nonce doesn't need to increase 1 by 1
-            const finalQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 1337)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), finalQuestionId)
+            const finalQuestionId = await module.getQuestionId(question, 1337)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), finalQuestionId)
             await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [questionId]), INVALIDATED_STATE)
 
             await expect(
@@ -793,7 +833,7 @@ describe("DaoModule", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(finalQuestionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestion", [1337, question, executor.address, 42, 0, 1337])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBond", [1337, question, executor.address, 42, 0, 1337, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -810,10 +850,10 @@ describe("DaoModule", async () => {
 
             const question = await module.buildQuestion(id, [txHash]);
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            const questionIdNonce0 = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            const questionIdNonce1 = await module.getQuestionId(1337, question, executor.address, 42, 0, 1)
+            const questionIdNonce0 = await module.getQuestionId(question, 0)
+            const questionIdNonce1 = await module.getQuestionId(question, 1)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionIdNonce0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionIdNonce0)
             const proposalParameters = [id, [txHash]]
             await module.addProposal(...proposalParameters)
 
@@ -825,7 +865,7 @@ describe("DaoModule", async () => {
 
             await mock.givenMethodReturnUint(oracle.interface.getSighash("resultFor"), INVALIDATED_STATE)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionIdNonce1)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionIdNonce1)
             await expect(
                 module.addProposalWithNonce(...proposalParameters, 1)
             ).to.be.revertedWith("This proposal has been marked as invalid")
@@ -837,13 +877,13 @@ describe("DaoModule", async () => {
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 42)
+            const questionId = await module.getQuestionId(question, 42)
             const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question))
-            const previousQuestionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), previousQuestionId)
+            const previousQuestionId = await module.getQuestionId(question, 0)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), previousQuestionId)
             await module.addProposal(id, [txHash])
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await mock.givenCalldataReturnUint(oracle.interface.encodeFunctionData("resultFor", [previousQuestionId]), INVALIDATED_STATE)
 
             await expect(
@@ -881,9 +921,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             const markInvalid = module.interface.encodeFunctionData(
@@ -904,9 +944,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             const markInvalid = module.interface.encodeFunctionData(
@@ -937,9 +977,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 1 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             await expect(
@@ -954,9 +994,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, []);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [])
 
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
@@ -973,9 +1013,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), false)
@@ -992,9 +1032,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
@@ -1017,9 +1057,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             const setMinimumBond = module.interface.encodeFunctionData(
@@ -1050,9 +1090,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             const block = await ethers.provider.getBlock("latest")
@@ -1076,9 +1116,9 @@ describe("DaoModule", async () => {
             const tx = { to: mock.address, value: 42, data: "0x", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, executor.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
@@ -1117,9 +1157,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
@@ -1139,9 +1179,9 @@ describe("DaoModule", async () => {
             const tx = { to: mock.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
@@ -1173,9 +1213,9 @@ describe("DaoModule", async () => {
             const tx = { to: user1.address, value: 0, data: "0xbaddad", operation: 0, nonce: 0 }
             const txHash = await module.getTransactionHash(tx.to, tx.value, tx.data, tx.operation, tx.nonce)
             const question = await module.buildQuestion(id, [txHash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [txHash])
 
             const block = await ethers.provider.getBlock("latest")
@@ -1220,9 +1260,9 @@ describe("DaoModule", async () => {
             const tx2 = { to: user1.address, value: 23, data: "0xdeaddeed", operation: 0, nonce: 1 }
             const tx2Hash = await module.getTransactionHash(tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
             const question = await module.buildQuestion(id, [tx1Hash, tx2Hash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [tx1Hash, tx2Hash])
             const block = await ethers.provider.getBlock("latest")
             await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
@@ -1242,9 +1282,9 @@ describe("DaoModule", async () => {
             const tx2 = { to: user1.address, value: 23, data: "0xdeaddeed", operation: 0, nonce: 1 }
             const tx2Hash = await module.getTransactionHash(tx2.to, tx2.value, tx2.data, tx2.operation, tx2.nonce)
             const question = await module.buildQuestion(id, [tx1Hash, tx2Hash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [tx1Hash, tx2Hash])
             const block = await ethers.provider.getBlock("latest")
             await mock.reset()
@@ -1296,9 +1336,9 @@ describe("DaoModule", async () => {
             expect(tx1Hash).to.be.not.equals(tx2Hash)
 
             const question = await module.buildQuestion(id, [tx1Hash, tx2Hash]);
-            const questionId = await module.getQuestionId(1337, question, mock.address, 42, 0, 0)
+            const questionId = await module.getQuestionId(question, 0)
 
-            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestion"), questionId)
+            await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBond"), questionId)
             await module.addProposal(id, [tx1Hash, tx2Hash])
             const block = await ethers.provider.getBlock("latest")
             await mock.reset()
