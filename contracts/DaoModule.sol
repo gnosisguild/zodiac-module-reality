@@ -188,7 +188,7 @@ abstract contract DaoModule {
             );
         }
         bytes32 expectedQuestionId = getQuestionId(question, nonce);
-        // Set the question hash for this quesion id
+        // Set the question hash for this question id
         questionIds[questionHash] = expectedQuestionId;
         bytes32 questionId = askQuestion(question, nonce);
         require(expectedQuestionId == questionId, "Unexpected question id");
