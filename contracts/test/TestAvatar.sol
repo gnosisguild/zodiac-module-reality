@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-contract TestExecutor {
+contract TestAvatar {
     address public module;
 
     receive() external payable {}

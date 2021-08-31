@@ -25,7 +25,7 @@ abstract contract DaoModule is Module {
         string indexed proposalId
     );
 
-    event DaoModuleSetup(address indexed initiator, address indexed executor);
+    event DaoModuleSetup(address indexed initiator, address indexed avatar);
 
     RealitioV3 public oracle;
     uint256 public template;
@@ -42,7 +42,7 @@ abstract contract DaoModule is Module {
         public executedProposalTransactions;
 
     /// @param _owner Address of the owner
-    /// @param _executor Address of the executor (e.g. a Safe)
+    /// @param _avatar Address of the avatar (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
@@ -52,7 +52,7 @@ abstract contract DaoModule is Module {
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(
         address _owner,
-        address _executor,
+        address _avatar,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -62,7 +62,7 @@ abstract contract DaoModule is Module {
     ) {
         bytes memory initParams = abi.encode(
             _owner,
-            _executor,
+            _avatar,
             _oracle,
             timeout,
             cooldown,
@@ -76,7 +76,7 @@ abstract contract DaoModule is Module {
     function setUp(bytes memory initParams) public override {
         (
             address _owner,
-            address _executor,
+            address _avatar,
             RealitioV3 _oracle,
             uint32 timeout,
             uint32 cooldown,
@@ -98,28 +98,28 @@ abstract contract DaoModule is Module {
             );
         require(!initialized, "Module is already initialized");
         initialized = true;
-        require(_executor != address(0), "Executor can not be zero address");
+        require(_avatar != address(0), "Avatar can not be zero address");
         require(timeout > 0, "Timeout has to be greater 0");
         require(
             expiration == 0 || expiration - cooldown >= 60,
             "There need to be at least 60s between end of cooldown and expiration"
         );
-        avatar = _executor;
+        avatar = _avatar;
         oracle = _oracle;
         answerExpiration = expiration;
         questionTimeout = timeout;
         questionCooldown = cooldown;
-        questionArbitrator = address(_executor);
+        questionArbitrator = avatar;
         minimumBond = bond;
         template = templateId;
 
         __Ownable_init();
         transferOwnership(_owner);
 
-        emit DaoModuleSetup(msg.sender, _executor);
+        emit DaoModuleSetup(msg.sender, avatar);
     }
 
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function setQuestionTimeout(uint32 timeout) public onlyOwner {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
@@ -127,7 +127,7 @@ abstract contract DaoModule is Module {
 
     /// @dev Sets the cooldown before an answer is usable.
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     function setQuestionCooldown(uint32 cooldown) public onlyOwner {
         uint32 expiration = answerExpiration;
@@ -142,7 +142,7 @@ abstract contract DaoModule is Module {
     /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function setAnswerExpiration(uint32 expiration) public onlyOwner {
         require(
             expiration == 0 || expiration - questionCooldown >= 60,
@@ -153,14 +153,14 @@ abstract contract DaoModule is Module {
 
     /// @dev Sets the question arbitrator that will be used for future questions.
     /// @param arbitrator Address of the arbitrator
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function setArbitrator(address arbitrator) public onlyOwner {
         questionArbitrator = arbitrator;
     }
 
     /// @dev Sets the minimum bond that is required for an answer to be accepted.
     /// @param bond Minimum bond that is required for an answer to be accepted
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function setMinimumBond(uint256 bond) public onlyOwner {
         minimumBond = bond;
     }
@@ -168,7 +168,7 @@ abstract contract DaoModule is Module {
     /// @dev Sets the template that should be used for future questions.
     /// @param templateId ID of the template that should be used for proposal questions
     /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function setTemplate(uint256 templateId) public onlyOwner {
         template = templateId;
     }
@@ -229,10 +229,10 @@ abstract contract DaoModule is Module {
     /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function markProposalAsInvalid(
         string memory proposalId,
-        bytes32[] memory txHashes // Executor only is checked in markProposalAsInvalidByHash(bytes32)
+        bytes32[] memory txHashes // avatar only is checked in markProposalAsInvalidByHash(bytes32)
     ) public {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
@@ -241,7 +241,7 @@ abstract contract DaoModule is Module {
 
     /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
-    /// @notice This can only be called by the executor
+    /// @notice This can only be called by the owner
     function markProposalAsInvalidByHash(bytes32 questionHash)
         public
         onlyOwner
@@ -274,7 +274,7 @@ abstract contract DaoModule is Module {
         questionIds[questionHash] = INVALIDATED;
     }
 
-    /// @dev Executes the transactions of a proposal via the executor if accepted
+    /// @dev Executes the transactions of a proposal via the avatar if accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param to Target of the transaction that should be executed
@@ -301,7 +301,7 @@ abstract contract DaoModule is Module {
         );
     }
 
-    /// @dev Executes the transactions of a proposal via the executor if accepted
+    /// @dev Executes the transactions of a proposal via the avatar if accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param to Target of the transaction that should be executed
@@ -377,7 +377,7 @@ abstract contract DaoModule is Module {
         );
         // Mark transaction as executed
         executedProposalTransactions[questionHash][txHash] = true;
-        // Execute the transaction via the executor.
+        // Execute the transaction via the avatar.
         require(exec(to, value, data, operation), "Module transaction failed");
     }
 
