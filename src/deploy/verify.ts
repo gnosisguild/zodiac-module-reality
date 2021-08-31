@@ -4,10 +4,19 @@ import { TASK_ETHERSCAN_VERIFY } from "hardhat-deploy";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { run } = hre;
+  if (!["rinkeby", "mainnet"].includes(hre.network.name)) {
+    return;
+  }
 
-  console.log("Verification of DAO Modules in etherscan...")
+  if (!process.env.INFURA_KEY) {
+    console.log(
+      `Could not find Infura key in env, unable to connect to network ${hre.network.name}`
+    );
+    return;
+  }
+
+  console.log("Verification of DAO Modules in etherscan...");
   console.log("Waiting for 1 minute before verifying contracts...");
-
   // Etherscan needs some time to process before trying to verify.
   await new Promise((resolve) => setTimeout(resolve, 60000));
 
