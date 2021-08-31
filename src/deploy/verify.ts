@@ -1,0 +1,23 @@
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { DeployFunction } from "hardhat-deploy/types";
+import { TASK_ETHERSCAN_VERIFY } from "hardhat-deploy";
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { run } = hre;
+
+  console.log("Verification of DAO Modules in etherscan...")
+  console.log("Waiting for 1 minute before verifying contracts...");
+
+  // Etherscan needs some time to process before trying to verify.
+  await new Promise((resolve) => setTimeout(resolve, 60000));
+
+  console.log("Starting to verify now");
+
+  await run(TASK_ETHERSCAN_VERIFY, {
+    apiKey: process.env.ETHERSCAN_KEY_API,
+    license: "GPL-3.0",
+    solcInput: true,
+    forceLicense: true, // we need this because contracts license is LGPL-3.0-only
+  });
+};
+export default func;
