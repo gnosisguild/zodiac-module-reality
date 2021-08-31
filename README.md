@@ -1,49 +1,56 @@
-# DAO Module
+# Zodiac Reality Module
 [![Build Status](https://github.com/gnosis/dao-module/workflows/dao-module/badge.svg?branch=main)](https://github.com/gnosis/dao-module/actions)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/dao-module/badge.svg?branch=main)](https://coveralls.io/github/gnosis/dao-module)
 
-This module allows for execution of transactions that have been approved via a Realitio question for execution. The question asked on Realitio consists of a proposal ID (e.g. an ipfs hash) that can be used to provide more information for the transactions to be executed. And of an array of EIP-712 based transaction hashes that represent the transactions that should be executed.
+The Reality Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools, which can be accessed through the Zodiac App available on [Gnosis Safe](https://gnosis-safe.io/), as well as in this repository. 
 
-These two components (`proposalId` and `txHashes`) uniquely identify a question on the module. While it is possible to ask the same question with different Realitio question parameters, it is only possible to execute transactions related to a specific question once.
+If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates.
 
-Once the question on Realitio has resolved to "yes" that the transactions should be executed, they are submitted to the immutable executor defined in the module. Transactions defined in questions that resolve to "no" or "invalid" cannot be executed by the module.
+### About the Reality Module
 
-This module is intended to be used with the [Gnosis Safe](https://github.com/gnosis/safe-contracts).
+This module allows on-chain execution based on the outcome of events reported by [Reality.eth](https://reality.eth.link/). While built initially to execute Gnosis Safe transactions according to Snapshot proposals, this module is framework agnostic. It can enable proposal execution from just about anywhere. For example, it can bring Discord polls on-chain. 
+
+This module allows for execution of transactions that have been approved through a Reality.eth question for execution. The question asked on Reality.eth consists of a proposal ID (e.g. an IPFS hash), which can be used to provide more information for the transaction to be executed, as well as an array of EIP-712-based transaction hashes that represent the transactions that should be executed.
+
+These two components (`proposalId` and `txHashes`) uniquely identify a question on the module. While it is possible to ask the same question with different Reality.eth question parameters, it is only possible to execute transactions related to a specific question once.
+
+Once the question on Reality.eth has resolved to "yes", meaning that the transactions should be executed, they are submitted to the immutable executor defined in the module. Transactions defined in questions that resolve to "no" or "invalid" cannot be executed by the module.
+
+This module is intended to be used with [Gnosis Safe](https://github.com/gnosis/safe-contracts), but it ultimately framework agnostic.
 
 ### Features
-- Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Realitio question that validates the execution of the connected transactions.
-- Proposals can be marked invalid by the `executor` using `markProposalInvalid` preventing the execution of the transactions related to that proposal
-- The Realitio question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
-- A `minimum bond` can be set that is required to be staked on a Realitio answer before the transactions can be executed
-- A `cooldown` can be specified representing the minimum time that needs to pass after the Realitio question has been answered before the transactions can be executed
+- Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Reality.eth question that validates the execution of the connected transactions.
+- Proposals can be marked invalid by the `executor` using `markProposalInvalid`, thereby preventing the execution of the transactions related to that proposal.
+- The Reality.eth question parameters (`templateId`, `timeout`, `arbitrator`) can be set on the module by the executor.
+- A `minimum bond` can be set, which is the amount required to be staked on a Reality.eth answer before the transactions can be executed.
+- A `cooldown` can be specified representing the minimum amount of time required to pass after the Reality.eth question has been answered before the transactions can be executed.
 
 ### Flow
-- Create question on Realitio via the `addProposal` method of this module.
-- Question needs to be answered on Realitio with yes (1) to approve it for execution.
-- Once the has a result and the `cooldown` period has passed the transaction(s) can be execute via `executeProposal`
+- Create question on Reality.eth via the `addProposal` method of this module.
+- The question needs to be answered on Reality.eth with yes (1) to approve it for execution.
+- Once the question has a result and the `cooldown` period has passed, the transaction(s) can be executed via `executeProposal`.
 
 ### Definitions
 
 #### Transaction nonce or index
 
-The `nonce` of a transaction makes it possible to have two transactions with the same `to`, `value` and `data` but still generate a different transaction hash. This is important as all hashes in the `txHashes` array should be unique. To make sure that this is the case the module will always use the `index` of the transaction hash inside the `txHashes` array as a nonce. So the first transaction to be executed has the `nonce` with the value `0`, the second with the value `1`, and so on.
+The `nonce` of a transaction makes it possible to have two transactions with the same `to`, `value` and `data` but still generate a different transaction hash. This is important as all hashes in the `txHashes` array should be unique. To make sure that this is the case, the module will always use the `index` of the transaction hash inside the `txHashes` array as a nonce. So the first transaction to be executed has the `nonce` with the value `0`, the second with the value `1`, and so on.
 
-Therefore we can simplify it to the following statement:
-The `nonce` of a DAO module transaction is equals to the `index` of that transactions hash in the `txHashes` array.
+Therefore we can simplify it to the following statement: The `nonce` of a Reality Module transaction is equal to the `index` of that transaction's hash in the `txHashes` array.
 
 #### Proposal nonce
 
-There is a chance that a question for a proposal is marked invalid on the oracle (e.g. when it is asked to early). In this case it should be possible to ask the question again. For this we need to be able to generate a new question ID. For this it is possible to provide the next higher `nonce` compared to the last invalidated proposal. So in case the first proposal (with the default `nonce` of `0`) was marked invalid on the oracle, a new proposal can be submitted with the `nonce` of `1`.
+There is a chance that a question is marked invalid on the oracle (e.g. if it is asked too early). In this case it should be possible to ask the question again, and we need to be able to generate a new question ID. For this it is possible to provide the next higher `nonce` compared to the last invalidated proposal. So in case the first proposal (with the default `nonce` of `0`) was marked invalid on the oracle, a new proposal can be submitted with the `nonce` of `1`.
 
-#### Oracle / Realitio
+#### Oracle / Reality.eth
 
-The DAO module depends on an oracle to determine if a proposal was expected and was deemed valid. The following assumptions are being made:
-- The oracle MUST implement the [Realitio contract interface](./contracts/interfaces/Realitio.sol)
-- It MUST not be possible to ask the same question with the same parameters again
-- Once a result is known for a question and it is finalized it MUST not change
-- The oracle MUST use the same question ID generation algorithm as this module
+The Reality Module depends on an oracle to determine if a proposal was expected and deemed valid. The following assumptions are being made:
+- The oracle MUST implement the [Reality.eth contract interface](./contracts/interfaces/Realitio.sol).
+- It MUST not be possible to ask the same question with the same parameters again.
+- Once a result is known and finalized for a question, it MUST not change.
+- The oracle MUST use the same question ID generation algorithm as this module.
 
-The reference oracle implementations are the Realitio contracts. These can be found on
+The reference oracle implementations are the Reality.eth contracts. These can be found on
 - https://www.npmjs.com/package/@realitio/realitio-contracts
 - https://github.com/realitio/realitio-contracts/
   - Ether: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
@@ -51,15 +58,15 @@ The reference oracle implementations are the Realitio contracts. These can be fo
 
 ### Failed transactions
 
-It is required that the transactions from a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail it will not be possible to continue with the execution of the following transactions. This is to prevent subsequent transactions being executed in a scenario where earlier transactions failed due to the gas limit being too low or due to other errors.
+It is required that the transactions from a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail, it will not be possible to continue with the execution of the following transactions. This is to prevent subsequent transactions being executed in a scenario in which earlier transactions failed due to the gas limit being too low or due to other errors.
 
 Transactions that failed will *not* be marked as executed and therefore can be executed at any later point in time. This is a potential risk and therefore it is recommended to either set an answer expiration time or invalidate the proposal (e.g. via another proposal).
 
 ### Answer expiration
 
-The module can be configured so that positive answers will expire after a certain time. This can be done by calling `setAnswerExpiration` with a time duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent that they are unexpectedly executed in the future. Negative answers (no or invalid) cannot expire.
+The module can be configured so that positive answers will expire after a certain time. This can be done by calling `setAnswerExpiration` with a duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent them from being unexpectedly executed in the future. Negative answers (no or invalid) cannot expire.
 
-Note: If the expiration time is set to `0` answers will never expire. This also means answers that expired before will become available again. To prevent this, it is recommended to call `markProposalWithExpiredAnswerAsInvalid` immediately after any proposal expires (or on all outstanding expired answers prior to setting the expiration date to `0`), this will mark a proposal with an expired answer as invalid. This method can be called by anyone.
+Note: If the expiration time is set to `0`, answers will never expire. This also means answers that expired before will become available again. To prevent this, it is recommended to call `markProposalWithExpiredAnswerAsInvalid` immediately after any proposal expires (or on all outstanding expired answers prior to setting the expiration date to `0`). This will mark a proposal with an expired answer as invalid. This method can be called by anyone.
 
 
 ### EIP-712 details
@@ -97,7 +104,7 @@ The contracts have been developed with [Solidity 0.8.0](https://github.com/ether
 
 ### Setup Guide
 
-Follow our [SafeSnap Setup Guide](./docs/setup_guide.md) to setup a DAO module and connect it to Snapshot.
+Follow our [Reality Module Setup Guide](./docs/setup_guide.md) to setup a Zodiac Reality Module and connect it to Snapshot.
 
 ### Audits
 
