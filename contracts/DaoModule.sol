@@ -97,6 +97,7 @@ abstract contract DaoModule is Module {
                 )
             );
         require(!initialized, "Module is already initialized");
+        initialized = true;
         require(_executor != address(0), "Executor can not be zero address");
         require(timeout > 0, "Timeout has to be greater 0");
         require(
@@ -114,9 +115,8 @@ abstract contract DaoModule is Module {
 
         __Ownable_init();
         transferOwnership(_owner);
-        initialized = true;
 
-        emit DaoModuleSetup(msg.sender, address(_executor));
+        emit DaoModuleSetup(msg.sender, _executor);
     }
 
     /// @notice This can only be called by the executor
