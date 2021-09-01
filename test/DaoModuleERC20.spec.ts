@@ -95,6 +95,17 @@ describe("DaoModuleERC20", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModuleERC20")
             await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
         })
+
+        it("should emit event because of successful set up", async () => {
+            const Module = await hre.ethers.getContractFactory("DaoModuleERC20")
+            const module = await Module.deploy(
+                user1.address, user1.address, user1.address, 1, 10, 0, 0, 0
+            )
+            await module.deployed()
+            await expect(module.deployTransaction)
+            .to.emit(module, "DaoModuleSetup").
+            withArgs(user1.address, user1.address)
+        })
     })
 
     describe("setQuestionTimeout", async () => {

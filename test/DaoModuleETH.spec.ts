@@ -68,9 +68,9 @@ describe("DaoModuleETH", async () => {
             const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
                 module.setUp(buildMockInitializerParams(mock))
-                ).to.be.revertedWith("Module is already initialized")
-            })
-            
+            ).to.be.revertedWith("Module is already initialized")
+        })
+
         it("throws if avatar is zero address", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModuleETH")
             await expect(
@@ -95,6 +95,17 @@ describe("DaoModuleETH", async () => {
         it("answer expiration can be 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModuleETH")
             await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
+        })
+
+        it("should emit event because of successful set up", async () => {
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const module = await Module.deploy(
+                user1.address, user1.address, user1.address, 1, 10, 0, 0, 0
+            )
+            await module.deployed()
+            await expect(module.deployTransaction)
+            .to.emit(module, "DaoModuleSetup").
+            withArgs(user1.address, user1.address)
         })
     })
 
