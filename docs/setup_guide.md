@@ -16,7 +16,7 @@ DISCLAIMER: Check the deployed Realitio contracts before using them.
 
 ## Setting up the module
 
-The first step is to deploy the module. Every DAO will have their own module. The module is linked to a DAO (called executor in the contract) and an oracle (e.g. Realitio). These cannot be changed after deployment.
+The first step is to deploy the module. Every DAO will have their own module. The module is linked to a DAO (called avatar in the contract) and an oracle (e.g. Realitio). These cannot be changed after deployment.
 
 As part of the setup you need to define or choose a template on Realitio. More information can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information) 
 
@@ -56,7 +56,7 @@ Hardhat tasks can be used to deploy a dao module instance. There are two differe
 
 Now that we have a template, a hardhat task can be used to deploy a DAO module instance. These tasks requires the following parameters:
 
-- `executor` - the address of the executor.
+- `avatar` - the address of the avatar.
 - `owner` - the address of the owner
 - `oracle` - the address of the Realitio contract
 - `template` - the template to be used with Realitio
@@ -64,11 +64,11 @@ Now that we have a template, a hardhat task can be used to deploy a DAO module i
 There are also optional parameters, for more information run `yarn hardhat setup --help` or `yarn hardhat factory-setup --help`.
 
 An example for this on Rinkeby would be:
-`yarn hardhat --network rinkeby setup --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby setup --owner <owner_address> --avatar <avatar_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 or
 
-`yarn hardhat --network rinkeby factorySetup --factory <factory_address> --mastercopy <mastercopy_address> --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby factorySetup --factory <factory_address> --mastercopy <mastercopy_address> --owner <owner_address> --avatar <avatar_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 or
 
@@ -79,7 +79,7 @@ This should return the address of the deployed DAO module. For this guide we ass
 Once the module is deployed you should verify the source code (Note: If you used the factory deployment the contract should be already verified). If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this. 
 
 An example for this on Rinkeby would be:
-`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --owner <owner_address> --avatar <avatar_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 ### Enabling the module
 
@@ -124,7 +124,7 @@ Once the question is available it can be answered via the Realitio web interface
 
 ## Monitoring your module
 
-As anyone can submit proposals to your module it is recommended to setup some monitoring. The DAO module relies on the oracle (e.g. Realitio) to provide the correct answer so that no malicious transactions are executed. In the worst case the executor (e.g. the connected Safe) can invalidate a submitted proposal (see [README](../README.md) for more information). 
+As anyone can submit proposals to your module it is recommended to setup some monitoring. The DAO module relies on the oracle (e.g. Realitio) to provide the correct answer so that no malicious transactions are executed. In the worst case the avatar (e.g. the connected Safe) can invalidate a submitted proposal (see [README](../README.md) for more information). 
 
 To make sure that all the involved stakeholders can react in a timely manner, the events emitted by the module contract should be monitored. Each time a new proposal is submitted the contract will emit a `ProposalQuestionCreated` event with the following parameters:
 ```

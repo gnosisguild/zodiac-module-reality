@@ -6,7 +6,7 @@ import "./interfaces/RealitioV3.sol";
 
 contract DaoModuleERC20 is DaoModule {
     /// @param _owner Address of the owner
-    /// @param _executor Address of the executor (e.g. a Safe)
+    /// @param _avatar Address of the avatar (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
@@ -16,7 +16,7 @@ contract DaoModuleERC20 is DaoModule {
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(
         address _owner,
-        address _executor,
+        address _avatar,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -26,7 +26,7 @@ contract DaoModuleERC20 is DaoModule {
     )
         DaoModule(
             _owner,
-            _executor,
+            _avatar,
             _oracle,
             timeout,
             cooldown,
