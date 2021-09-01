@@ -1,6 +1,13 @@
-import { time } from "console";
-import hre, { deployments, ethers, waffle } from "hardhat";
+import { Contract } from "ethers";
+import { defaultAbiCoder } from "ethers/lib/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+
+export const buildMockInitializerParams = (mock: Contract): string => {
+    return defaultAbiCoder.encode(
+        ["address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 
+        [mock.address, mock.address, mock.address, 42, 23, 0, 0, 1337]
+    )
+} 
 
 export const nextBlockTime = async (hre: HardhatRuntimeEnvironment, timestamp: number) =>  {
     await hre.ethers.provider.send("evm_setNextBlockTimestamp", [timestamp])

@@ -52,17 +52,34 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
-Now that we have a template, a hardhat task can be used to deploy a DAO module instance. This setup task requires the following parameters: `dao` (the address of the Safe), `oracle` (the address of the Realitio contract) and `template` (the template to be used with Realitio). There are also optional parameters, for more information run `yarn hardhat setup --help`.
+Hardhat tasks can be used to deploy a dao module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the DAO Module: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
+
+Now that we have a template, a hardhat task can be used to deploy a DAO module instance. These tasks requires the following parameters:
+
+- `executor` - the address of the executor.
+- `owner` - the address of the owner
+- `oracle` - the address of the Realitio contract
+- `template` - the template to be used with Realitio
+
+There are also optional parameters, for more information run `yarn hardhat setup --help` or `yarn hardhat factory-setup --help`.
 
 An example for this on Rinkeby would be:
-`yarn hardhat --network rinkeby setup --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby setup --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+
+or
+
+`yarn hardhat --network rinkeby factorySetup --factory <factory_address> --mastercopy <mastercopy_address> --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+
+or
+
+`yarn hardhat --network rinkeby factory-setup --factory <factory_address> --mastercopy <mastercopy_address> --dao <dao_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 This should return the address of the deployed DAO module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
 
-Once the module is deployed you should verify the source code. If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this. 
+Once the module is deployed you should verify the source code (Note: If you used the factory deployment the contract should be already verified). If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this. 
 
 An example for this on Rinkeby would be:
-`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --owner <owner_address> --executor <executor_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 ### Enabling the module
 
@@ -118,3 +135,7 @@ event ProposalQuestionCreated(
 ```
 
 There are different services available for this such as the [OpenZepplin Defender Sentinel](https://docs.openzeppelin.com/defender/sentinel).
+
+### Deploy a master copy 
+
+If the contract get an update, you can deploy a new version of a Master Copy using the hardhat task `deployMasterCopy`. An example of the command would be: `yarn hardhat --network rinkeby deployMasterCopy`

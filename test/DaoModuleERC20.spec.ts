@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, ethers, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { nextBlockTime } from "./utils";
+import { buildMockInitializerParams, nextBlockTime } from "./utils";
 import { _TypedDataEncoder } from "@ethersproject/hash";
 
 const EIP712_TYPES = {
@@ -31,6 +31,7 @@ const EIP712_TYPES = {
 
 const INVALIDATED_STATE = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 describe("DaoModuleERC20", async () => {
 
@@ -47,45 +48,61 @@ describe("DaoModuleERC20", async () => {
     const setupTestWithTestExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModuleERC20");
-        const module = await Module.deploy(base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.executor.address, base.executor.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockExecutor = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("DaoModuleERC20");
-        const module = await Module.deploy(base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
 
-    describe("constructor", async () => {
+    describe("setUp", async () => {
+        it("throws if is already initialized", async () => {
+            const { mock } = await baseSetup()
+            const Module = await hre.ethers.getContractFactory("DaoModuleERC20")
+            const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
+            await expect(
+                module.setUp(buildMockInitializerParams(mock))
+            ).to.be.revertedWith("Module is already initialized")
+        })
+
+        it("throws if executor is zero address", async () => {
+            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            await expect(
+                Module.deploy(user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337)
+            ).to.be.revertedWith("Executor can not be zero address")
+        })
+
         it("throws if timeout is 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModuleERC20")
             await expect(
-                Module.deploy(user1.address, user1.address, 0, 0, 0, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, 0, 0, 0, 0, 0)
             ).to.be.revertedWith("Timeout has to be greater 0")
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModuleERC20")
             await expect(
-                Module.deploy(user1.address, user1.address, 1, 0, 59, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
             ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
         })
 
         it("answer expiration can be 0", async () => {
             const Module = await hre.ethers.getContractFactory("DaoModuleERC20")
-            await Module.deploy(user1.address, user1.address, 1, 10, 0, 0, 0)
+            await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
         })
     })
 
     describe("setQuestionTimeout", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setQuestionTimeout(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if timeout is 0", async () => {
@@ -113,11 +130,11 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("setQuestionCooldown", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setQuestionCooldown(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
@@ -177,11 +194,11 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("setAnswerExpiration", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setAnswerExpiration(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
@@ -220,11 +237,11 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("setArbitrator", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setArbitrator(ethers.constants.AddressZero)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates arbitrator", async () => {
@@ -244,11 +261,11 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("setMinimumBond", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setMinimumBond(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates minimum bond", async () => {
@@ -268,11 +285,11 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("setTemplate", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             await expect(
                 module.setTemplate(2)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("updates template", async () => {
@@ -292,12 +309,12 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("markProposalAsInvalidByHash", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
                 module.markProposalAsInvalidByHash(randomHash)
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("marks unknown question id as invalid", async () => {
@@ -343,12 +360,12 @@ describe("DaoModuleERC20", async () => {
     })
 
     describe("markProposalAsInvalid", async () => {
-        it("throws if not authorized", async () => {
+        it("throws if Ownable: caller is not the owner", async () => {
             const { module } = await setupTestWithTestExecutor();
             const randomHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
             await expect(
                 module.markProposalAsInvalid(randomHash, [randomHash])
-            ).to.be.revertedWith("Not authorized");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         })
 
         it("marks unknown question id as invalid", async () => {
