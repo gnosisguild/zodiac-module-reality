@@ -122,21 +122,4 @@ task("createDaoTemplate", "Creates a question template on the oracle address")
         console.log("Template id:", id);
     });
 
-task("deployMasterCopy", "deploy a master copy of DAO Module").setAction(
-    async (_, hardhatRuntime) => {
-        const [caller] = await hardhatRuntime.ethers.getSigners();
-        console.log("Using the account:", caller.address);
-        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
-        const module = await Module.deploy(FIRST_ADDRESS, FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0);
-
-        await module.deployTransaction.wait(3);
-
-        console.log("Module deployed to:", module.address);
-        await hardhatRuntime.run("verify:verify", {
-            address: module.address,
-            constructorArguments: [FIRST_ADDRESS, FIRST_ADDRESS, ZERO_ADDRESS, 1, 0, 60, 0, 0],
-        });
-    }
-);
-
 export { };
