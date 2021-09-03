@@ -37,7 +37,7 @@ task("addProposal", "Adds a proposal question")
         .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
         .setAction(async (taskArgs, hardhatRuntime) => {
             const ethers = hardhatRuntime.ethers;
-            const Module = await ethers.getContractFactory("DaoModule");
+            const Module = await ethers.getContractFactory("RealityModule");
             const module = await Module.attach(taskArgs.module);
 
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);
@@ -51,7 +51,7 @@ task("showProposal", "Shows proposal question details")
         .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
         .setAction(async (taskArgs, hardhatRuntime) => {
             const ethers = hardhatRuntime.ethers;
-            const Module = await ethers.getContractFactory("DaoModule");
+            const Module = await ethers.getContractFactory("RealityModule");
             const module = await Module.attach(taskArgs.module);
 
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);
@@ -71,7 +71,7 @@ task("executeProposal", "Executes a proposal")
         .addParam("proposalFile", "File with proposal information json", undefined, types.inputFile)
         .setAction(async (taskArgs, hardhatRuntime) => {
             const ethers = hardhatRuntime.ethers;
-            const Module = await ethers.getContractFactory("DaoModule");
+            const Module = await ethers.getContractFactory("RealityModule");
             const module = await Module.attach(taskArgs.module);
 
             const proposal = await getProposalDetails(module, taskArgs.proposalFile);

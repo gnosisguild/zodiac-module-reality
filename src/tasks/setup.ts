@@ -25,7 +25,7 @@ task("setup", "Provides the clearing price to an auction")
     .setAction(async (taskArgs, hardhatRuntime) => {
         const [caller] = await hardhatRuntime.ethers.getSigners();
         console.log("Using the account:", caller.address);
-        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
+        const Module = await hardhatRuntime.ethers.getContractFactory("RealityModule");
         const module = await Module.deploy(taskArgs.owner, taskArgs.avatar, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template);
         
         console.log("Module deployed to:", module.address);
@@ -59,7 +59,7 @@ task("factorySetup", "Deploy and initialize Reality Module through a Proxy Facto
         ];
         
         const Factory = new Contract(taskArgs.factory, FactoryAbi, caller)
-        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
+        const Module = await hardhatRuntime.ethers.getContractFactory("RealityModule");
 
         const encodedParams = new AbiCoder().encode(
             ["address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 

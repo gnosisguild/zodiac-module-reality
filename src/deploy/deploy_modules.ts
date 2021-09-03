@@ -9,14 +9,14 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const args = [FIRST_ADDRESS, FIRST_ADDRESS, FIRST_ADDRESS, 1, 0, 60, 0, 0];
 
-  await deploy("DaoModuleERC20", {
+  await deploy("RealityModuleERC20", {
     from: deployer,
     args,
     log: true,
     deterministicDeployment: true,
   });
 
-  await deploy("DaoModuleETH", {
+  await deploy("RealityModuleETH", {
     from: deployer,
     args,
     log: true,

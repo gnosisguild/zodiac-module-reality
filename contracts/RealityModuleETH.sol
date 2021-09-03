@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "./DaoModule.sol";
+import "./RealityModule.sol";
 import "./interfaces/RealitioV3.sol";
 
-contract DaoModuleERC20 is DaoModule {
+contract RealityModuleETH is RealityModule {
     /// @param _owner Address of the owner
     /// @param _avatar Address of the avatar (e.g. a Safe)
     /// @param _oracle Address of the oracle (e.g. Realitio)
@@ -24,7 +24,7 @@ contract DaoModuleERC20 is DaoModule {
         uint256 bond,
         uint256 templateId
     )
-        DaoModule(
+        RealityModule(
             _owner,
             _avatar,
             _oracle,
@@ -43,15 +43,14 @@ contract DaoModuleERC20 is DaoModule {
     {
         // Ask the question with a starting time of 0, so that it can be immediately answered
         return
-            RealitioV3ERC20(address(oracle)).askQuestionWithMinBondERC20(
+            RealitioV3ETH(address(oracle)).askQuestionWithMinBond(
                 template,
                 question,
                 questionArbitrator,
                 questionTimeout,
                 0,
                 nonce,
-                minimumBond,
-                0
+                minimumBond
             );
     }
 }

@@ -138,4 +138,4 @@ There are different services available for this such as the [OpenZepplin Defende
 
 ### Deploy a master copy 
 
-The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the DaoModule contracts gets an update and the ones referred on the (zodiac repository)[https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts] should be used.
+The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the RealityModule contracts gets an update and the ones referred on the (zodiac repository)[https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts] should be used.

@@ -33,7 +33,7 @@ const INVALIDATED_STATE = "0xfffffffffffffffffffffffffffffffffffffffffffffffffff
 const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
-describe("DaoModuleETH", async () => {
+describe("RealityModuleETH", async () => {
 
     const baseSetup = deployments.createFixture(async () => {
         await deployments.fixture();
@@ -47,14 +47,14 @@ describe("DaoModuleETH", async () => {
 
     const setupTestWithTestAvatar = deployments.createFixture(async () => {
         const base = await baseSetup();
-        const Module = await hre.ethers.getContractFactory("DaoModuleETH");
+        const Module = await hre.ethers.getContractFactory("RealityModuleETH");
         const module = await Module.deploy(base.avatar.address, base.avatar.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockAvatar = deployments.createFixture(async () => {
         const base = await baseSetup();
-        const Module = await hre.ethers.getContractFactory("DaoModuleETH");
+        const Module = await hre.ethers.getContractFactory("RealityModuleETH");
         const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
@@ -64,7 +64,7 @@ describe("DaoModuleETH", async () => {
     describe("setUp", () => {
         it("throws if is already initialized", async () => {
             const { mock } = await baseSetup()
-            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
                 module.setUp(buildMockInitializerParams(mock))
@@ -72,39 +72,39 @@ describe("DaoModuleETH", async () => {
         })
 
         it("throws if avatar is zero address", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await expect(
                 Module.deploy(user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337)
             ).to.be.revertedWith("Avatar can not be zero address")
         })
 
         it("throws if timeout is 0", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await expect(
                 Module.deploy(user1.address, user1.address, user1.address, 0, 10, 100, 100, 1)
             ).to.be.revertedWith("Timeout has to be greater 0")
         })
             
         it("throws if not enough time between cooldown and expiration", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await expect(
                 Module.deploy(user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
             ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
         })
             
         it("answer expiration can be 0", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
         })
 
         it("should emit event because of successful set up", async () => {
-            const Module = await hre.ethers.getContractFactory("DaoModuleETH")
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             const module = await Module.deploy(
                 user1.address, user1.address, user1.address, 1, 10, 0, 0, 0
             )
             await module.deployed()
             await expect(module.deployTransaction)
-            .to.emit(module, "DaoModuleSetup").
+            .to.emit(module, "RealityModuleSetup").
             withArgs(user1.address, user1.address)
         })
     })
