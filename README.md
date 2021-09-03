@@ -1,6 +1,7 @@
-# DAO Module
-[![Build Status](https://github.com/gnosis/dao-module/workflows/dao-module/badge.svg?branch=main)](https://github.com/gnosis/dao-module/actions)
-[![Coverage Status](https://coveralls.io/repos/github/gnosis/dao-module/badge.svg?branch=main)](https://coveralls.io/github/gnosis/dao-module)
+# Reality Module
+
+[![Build Status](https://github.com/gnosis/zodiac-module-reality/workflows/zodiac-module-reality/badge.svg?branch=main)](https://github.com/gnosis/zodiac-module-reality/actions)
+[![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-module-reality/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-module-reality)
 
 This module allows for execution of transactions that have been approved via a Realitio question for execution. The question asked on Realitio consists of a proposal ID (e.g. an ipfs hash) that can be used to provide more information for the transactions to be executed. And of an array of EIP-712 based transaction hashes that represent the transactions that should be executed.
 
@@ -11,6 +12,7 @@ Once the question on Realitio has resolved to "yes" that the transactions should
 This module is intended to be used with the [Gnosis Safe](https://github.com/gnosis/safe-contracts).
 
 ### Features
+
 - Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Realitio question that validates the execution of the connected transactions.
 - Proposals can be marked invalid by the `executor` using `markProposalInvalid` preventing the execution of the transactions related to that proposal
 - The Realitio question parameters (`templateId`, `timeout`, `arbitrator`) are set on the module by the executor
@@ -18,6 +20,7 @@ This module is intended to be used with the [Gnosis Safe](https://github.com/gno
 - A `cooldown` can be specified representing the minimum time that needs to pass after the Realitio question has been answered before the transactions can be executed
 
 ### Flow
+
 - Create question on Realitio via the `addProposal` method of this module.
 - Question needs to be answered on Realitio with yes (1) to approve it for execution.
 - Once the has a result and the `cooldown` period has passed the transaction(s) can be execute via `executeProposal`
@@ -29,7 +32,7 @@ This module is intended to be used with the [Gnosis Safe](https://github.com/gno
 The `nonce` of a transaction makes it possible to have two transactions with the same `to`, `value` and `data` but still generate a different transaction hash. This is important as all hashes in the `txHashes` array should be unique. To make sure that this is the case the module will always use the `index` of the transaction hash inside the `txHashes` array as a nonce. So the first transaction to be executed has the `nonce` with the value `0`, the second with the value `1`, and so on.
 
 Therefore we can simplify it to the following statement:
-The `nonce` of a DAO module transaction is equals to the `index` of that transactions hash in the `txHashes` array.
+The `nonce` of a Reality module transaction is equals to the `index` of that transactions hash in the `txHashes` array.
 
 #### Proposal nonce
 
@@ -37,13 +40,15 @@ There is a chance that a question for a proposal is marked invalid on the oracle
 
 #### Oracle / Realitio
 
-The DAO module depends on an oracle to determine if a proposal was expected and was deemed valid. The following assumptions are being made:
+The Reality module depends on an oracle to determine if a proposal was expected and was deemed valid. The following assumptions are being made:
+
 - The oracle MUST implement the [Realitio contract interface](./contracts/interfaces/Realitio.sol)
 - It MUST not be possible to ask the same question with the same parameters again
 - Once a result is known for a question and it is finalized it MUST not change
 - The oracle MUST use the same question ID generation algorithm as this module
 
 The reference oracle implementations are the Realitio contracts. These can be found on
+
 - https://www.npmjs.com/package/@realitio/realitio-contracts
 - https://github.com/realitio/realitio-contracts/
   - Ether: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
@@ -53,14 +58,13 @@ The reference oracle implementations are the Realitio contracts. These can be fo
 
 It is required that the transactions from a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail it will not be possible to continue with the execution of the following transactions. This is to prevent subsequent transactions being executed in a scenario where earlier transactions failed due to the gas limit being too low or due to other errors.
 
-Transactions that failed will *not* be marked as executed and therefore can be executed at any later point in time. This is a potential risk and therefore it is recommended to either set an answer expiration time or invalidate the proposal (e.g. via another proposal).
+Transactions that failed will _not_ be marked as executed and therefore can be executed at any later point in time. This is a potential risk and therefore it is recommended to either set an answer expiration time or invalidate the proposal (e.g. via another proposal).
 
 ### Answer expiration
 
 The module can be configured so that positive answers will expire after a certain time. This can be done by calling `setAnswerExpiration` with a time duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent that they are unexpectedly executed in the future. Negative answers (no or invalid) cannot expire.
 
 Note: If the expiration time is set to `0` answers will never expire. This also means answers that expired before will become available again. To prevent this, it is recommended to call `markProposalWithExpiredAnswerAsInvalid` immediately after any proposal expires (or on all outstanding expired answers prior to setting the expiration date to `0`), this will mark a proposal with an expired answer as invalid. This method can be called by anyone.
-
 
 ### EIP-712 details
 
@@ -97,12 +101,12 @@ The contracts have been developed with [Solidity 0.8.0](https://github.com/ether
 
 ### Setup Guide
 
-Follow our [SafeSnap Setup Guide](./docs/setup_guide.md) to setup a DAO module and connect it to Snapshot.
+Follow our [SafeSnap Setup Guide](./docs/setup_guide.md) to setup a Reality module and connect it to Snapshot.
 
 ### Audits
 
 An audit has been performed by the [G0 group](https://github.com/g0-group).
 
-All issues and notes of the audit have been addressed in commit [7a5244d0a0a70b023d23af59659e0c055be7cca2](https://github.com/gnosis/dao-module/commit/7a5244d0a0a70b023d23af59659e0c055be7cca2).
+All issues and notes of the audit have been addressed in commit [7a5244d0a0a70b023d23af59659e0c055be7cca2](https://github.com/gnosis/zodiac-module-reality/commit/7a5244d0a0a70b023d23af59659e0c055be7cca2).
 
 The audit results are available as a pdf in [this repo](./docs/GnosisDaoRealitioModuleMar2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/4e172e8b44012c6bf2346e9925df5e0f27a40d7a/GnosisDaoRealitioModuleMar2021.pdf).

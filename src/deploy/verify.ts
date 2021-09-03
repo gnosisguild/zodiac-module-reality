@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     return;
   }
 
-  console.log("Verification of DAO Modules in etherscan...");
+  console.log("Verification of Reality Modules in etherscan...");
   console.log("Waiting for 1 minute before verifying contracts...");
   // Etherscan needs some time to process before trying to verify.
   await new Promise((resolve) => setTimeout(resolve, 60000));

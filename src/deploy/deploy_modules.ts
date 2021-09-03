@@ -24,5 +24,5 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 
-deploy.tags = ["dao-module"];
+deploy.tags = ["zodiac-module-reality"];
 export default deploy;

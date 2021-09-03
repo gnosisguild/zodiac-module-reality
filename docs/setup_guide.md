@@ -1,12 +1,12 @@
 # SafeSnap Setup Guide
 
-This guide shows how to setup the DAO module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Realitio](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
+This guide shows how to setup the Reality module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Realitio](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
 
 For more information on SafeSnap please refer to the [Gnosis blog](https://blog.gnosis.pm/ea67eb95c34f).
 
 ## Prerequisites
 
-To start the process you need to create a Safe on the Rinkeby test network (e.g. via https://rinkeby.gnosis-safe.io). This Safe will represent the DAO and hold all the assets (e.g. tokens and collectibles). A Safe transaction is required to setup the DAO module.
+To start the process you need to create a Safe on the Rinkeby test network (e.g. via https://rinkeby.gnosis-safe.io). This Safe will represent the DAO and hold all the assets (e.g. tokens and collectibles). A Safe transaction is required to setup the Reality module.
 
 For the hardhat tasks to work the environment needs to be properly configured. See the [sample env file](../.env.sample) for more information.
 
@@ -52,9 +52,9 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
-Hardhat tasks can be used to deploy a dao module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the DAO Module: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
+Hardhat tasks can be used to deploy a dao module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the Reality Module: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
 
-Now that we have a template, a hardhat task can be used to deploy a DAO module instance. These tasks requires the following parameters:
+Now that we have a template, a hardhat task can be used to deploy a Reality module instance. These tasks requires the following parameters:
 
 - `avatar` - the address of the avatar.
 - `owner` - the address of the owner
@@ -74,7 +74,7 @@ or
 
 `yarn hardhat --network rinkeby factory-setup --factory <factory_address> --mastercopy <mastercopy_address> --dao <dao_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
-This should return the address of the deployed DAO module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
+This should return the address of the deployed Reality module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
 
 Once the module is deployed you should verify the source code (Note: If you used the factory deployment the contract should be already verified). If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this. 
 
@@ -83,11 +83,11 @@ An example for this on Rinkeby would be:
 
 ### Enabling the module
 
-To allow the DAO module to actually execute transaction it is required to enable it on the Safe that it is connected to. For this it is possible to use the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
+To allow the Reality module to actually execute transaction it is required to enable it on the Safe that it is connected to. For this it is possible to use the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
 
 ## Snapshot integration
 
-Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the DAO module plugin. For this the space configuration needs to include `"plugins": { "daoModule": { "address": "<module_address>"} }`. An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
+Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the Reality module plugin. For this the space configuration needs to include `"plugins": { "daoModule": { "address": "<module_address>"} }`. An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
 
 Once your space is configured you can attach transactions to you proposals via the plugin section:
 
@@ -96,14 +96,14 @@ Once your space is configured you can attach transactions to you proposals via t
 ![Open the plugin selection](./snapshot_plugin_section.png)
 
 
-2. Add DAO module plugin
+2. Add Reality module plugin
 
-![Add DAO module plugin](./snapshot_add_plugin.png)
+![Add Reality module plugin](./snapshot_add_plugin.png)
 
-3. Add DAO module transaction
+3. Add Reality module transaction
 
 <img src="./snapshot_module_add_tx.png"
-     alt="Add DAO module transaction"
+     alt="Add Reality module transaction"
      width="250"/>
 <img src="./snapshot_module_tx_details.png"
      alt="Enter transactiond etails"
@@ -116,7 +116,7 @@ Once your space is configured you can attach transactions to you proposals via t
 
 ![Transactions preview](./snapshot_plugin_preview.png)
 
-Once the proposal has been resolved it is possible to submit the proposal to the DAO module via the plugin. 
+Once the proposal has been resolved it is possible to submit the proposal to the Reality module via the plugin. 
 
 This can also be done via the hardhat tasks provided in this repository. For more information run `yarn hardhat addProposal --help` or `yarn hardhat executeProposal --help`.
 
@@ -124,7 +124,7 @@ Once the question is available it can be answered via the Realitio web interface
 
 ## Monitoring your module
 
-As anyone can submit proposals to your module it is recommended to setup some monitoring. The DAO module relies on the oracle (e.g. Realitio) to provide the correct answer so that no malicious transactions are executed. In the worst case the avatar (e.g. the connected Safe) can invalidate a submitted proposal (see [README](../README.md) for more information). 
+As anyone can submit proposals to your module it is recommended to setup some monitoring. The Reality module relies on the oracle (e.g. Realitio) to provide the correct answer so that no malicious transactions are executed. In the worst case the avatar (e.g. the connected Safe) can invalidate a submitted proposal (see [README](../README.md) for more information). 
 
 To make sure that all the involved stakeholders can react in a timely manner, the events emitted by the module contract should be monitored. Each time a new proposal is submitted the contract will emit a `ProposalQuestionCreated` event with the following parameters:
 ```

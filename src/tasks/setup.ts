@@ -31,9 +31,9 @@ task("setup", "Provides the clearing price to an auction")
         console.log("Module deployed to:", module.address);
     });
 
-task("factorySetup", "Deploy and initialize DAO Module through a Proxy Factory")
+task("factorySetup", "Deploy and initialize Reality Module through a Proxy Factory")
     .addParam("factory", "Address of the Proxy Factory", undefined, types.string)
-    .addParam("mastercopy", "Address of the DAO Module Master Copy", undefined, types.string)
+    .addParam("mastercopy", "Address of the Reality Module Master Copy", undefined, types.string)
     .addParam("owner", "Address of the owner", undefined, types.string)
     .addParam("avatar", "Address of the avatar (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
