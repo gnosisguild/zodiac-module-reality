@@ -66,7 +66,7 @@ describe("Module works with factory", () => {
     );
   });
 
-  it("should deploy new dao module proxy", async () => {
+  it("should deploy new reality module proxy", async () => {
     const { factory, masterCopy } = await baseSetup();
     const [executor, oracle] = await ethers.getSigners();
     const paramsValues = [

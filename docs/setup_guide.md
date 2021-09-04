@@ -52,7 +52,7 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
-Hardhat tasks can be used to deploy a dao module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the Reality Module: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
+Hardhat tasks can be used to deploy a reality module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the master copy of the Reality Module: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
 
 Now that we have a template, a hardhat task can be used to deploy a Reality module instance. These tasks requires the following parameters:
 
