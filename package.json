@@ -1,7 +1,7 @@
 {
-  "name": "@zodiac/dao-module",
+  "name": "@zodiac/zodiac-module-reality",
   "version": "1.0.0",
-  "description": "Snapshot DAO oracle module for the Gnosis Safe",
+  "description": "A module that allows on-chain execution triggered by answers from the Reality.eth oracle.",
   "directories": {
     "test": "test"
   },
@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@gnosis.pm/mock-contract": "^4.0.0",
+    "@openzeppelin/contracts": "^4.3.1",
     "argv": "^0.0.2",
     "dotenv": "^8.0.0",
     "ethers": "^5.0.19",

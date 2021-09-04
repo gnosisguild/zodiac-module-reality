@@ -25,15 +25,15 @@ task("setup", "Provides the clearing price to an auction")
     .setAction(async (taskArgs, hardhatRuntime) => {
         const [caller] = await hardhatRuntime.ethers.getSigners();
         console.log("Using the account:", caller.address);
-        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
+        const Module = await hardhatRuntime.ethers.getContractFactory("RealityModule");
         const module = await Module.deploy(taskArgs.owner, taskArgs.avatar, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template);
         
         console.log("Module deployed to:", module.address);
     });
 
-task("factorySetup", "Deploy and initialize DAO Module through a Proxy Factory")
+task("factorySetup", "Deploy and initialize Reality Module through a Proxy Factory")
     .addParam("factory", "Address of the Proxy Factory", undefined, types.string)
-    .addParam("mastercopy", "Address of the DAO Module Master Copy", undefined, types.string)
+    .addParam("mastercopy", "Address of the Reality Module Master Copy", undefined, types.string)
     .addParam("owner", "Address of the owner", undefined, types.string)
     .addParam("avatar", "Address of the avatar (e.g. Safe)", undefined, types.string)
     .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
@@ -59,7 +59,7 @@ task("factorySetup", "Deploy and initialize DAO Module through a Proxy Factory")
         ];
         
         const Factory = new Contract(taskArgs.factory, FactoryAbi, caller)
-        const Module = await hardhatRuntime.ethers.getContractFactory("DaoModule");
+        const Module = await hardhatRuntime.ethers.getContractFactory("RealityModule");
 
         const encodedParams = new AbiCoder().encode(
             ["address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 

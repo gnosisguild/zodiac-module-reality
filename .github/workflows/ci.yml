@@ -1,4 +1,4 @@
-name: dao-module
+name: zodiac-module-reality
 on: [ pull_request, push ]
 
 jobs:

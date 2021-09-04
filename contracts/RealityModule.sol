@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 import "@gnosis/zodiac/contracts/core/Module.sol";
 import "./interfaces/RealitioV3.sol";
 
-abstract contract DaoModule is Module {
+abstract contract RealityModule is Module {
     bytes32 public constant INVALIDATED =
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -25,7 +25,7 @@ abstract contract DaoModule is Module {
         string indexed proposalId
     );
 
-    event DaoModuleSetup(address indexed initiator, address indexed avatar);
+    event RealityModuleSetup(address indexed initiator, address indexed avatar);
 
     RealitioV3 public oracle;
     uint256 public template;
@@ -116,7 +116,7 @@ abstract contract DaoModule is Module {
         __Ownable_init();
         transferOwnership(_owner);
 
-        emit DaoModuleSetup(msg.sender, avatar);
+        emit RealityModuleSetup(msg.sender, avatar);
     }
 
     /// @notice This can only be called by the owner

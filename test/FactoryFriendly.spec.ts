@@ -29,10 +29,10 @@ describe("Module works with factory", () => {
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
     const Factory = await hre.ethers.getContractFactory("ModuleProxyFactory");
-    const DaoModuleETH = await hre.ethers.getContractFactory("DaoModuleETH");
+    const RealityModuleETH = await hre.ethers.getContractFactory("RealityModuleETH");
     const factory = await Factory.deploy();
 
-    const masterCopy = await DaoModuleETH.deploy(
+    const masterCopy = await RealityModuleETH.deploy(
       FIRST_ADDRESS,
       FIRST_ADDRESS,
       ZERO_ADDRESS,
@@ -66,7 +66,7 @@ describe("Module works with factory", () => {
     );
   });
 
-  it("should deploy new dao module proxy", async () => {
+  it("should deploy new reality module proxy", async () => {
     const { factory, masterCopy } = await baseSetup();
     const [executor, oracle] = await ethers.getSigners();
     const paramsValues = [
@@ -96,7 +96,7 @@ describe("Module works with factory", () => {
     );
 
     const newProxy = await hre.ethers.getContractAt(
-      "DaoModuleETH",
+      "RealityModuleETH",
       newProxyAddress
     );
     expect(await newProxy.questionTimeout()).to.be.eq(timeout);
