@@ -7,6 +7,7 @@ import "./interfaces/RealitioV3.sol";
 contract RealityModuleERC20 is RealityModule {
     /// @param _owner Address of the owner
     /// @param _avatar Address of the avatar (e.g. a Safe)
+    /// @param _target Address of the contract that will call exec function
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
@@ -17,6 +18,7 @@ contract RealityModuleERC20 is RealityModule {
     constructor(
         address _owner,
         address _avatar,
+        address _target,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -27,6 +29,7 @@ contract RealityModuleERC20 is RealityModule {
         RealityModule(
             _owner,
             _avatar,
+            _target,
             _oracle,
             timeout,
             cooldown,

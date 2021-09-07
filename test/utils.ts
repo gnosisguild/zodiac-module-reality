@@ -4,8 +4,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 export const buildMockInitializerParams = (mock: Contract): string => {
     return defaultAbiCoder.encode(
-        ["address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 
-        [mock.address, mock.address, mock.address, 42, 23, 0, 0, 1337]
+        ["address", "address", "address", "address", "uint32", "uint32", "uint32", "uint256", "uint256"], 
+        [mock.address, mock.address, mock.address, mock.address, 42, 23, 0, 0, 1337]
     )
 } 
 

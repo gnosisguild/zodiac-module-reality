@@ -19,6 +19,7 @@ describe("Module works with factory", () => {
     "address",
     "address",
     "address",
+    "address",
     "uint32",
     "uint32",
     "uint32",
@@ -35,6 +36,7 @@ describe("Module works with factory", () => {
     const masterCopy = await RealityModuleETH.deploy(
       FIRST_ADDRESS,
       FIRST_ADDRESS,
+      FIRST_ADDRESS,
       ZERO_ADDRESS,
       1,
       0,
@@ -48,11 +50,12 @@ describe("Module works with factory", () => {
 
   it("should throw because master copy is already initialized", async () => {
     const { masterCopy } = await baseSetup();
-    const [executor, oracle] = await ethers.getSigners();
+    const [safe, oracle] = await ethers.getSigners();
 
     const encodedParams = new AbiCoder().encode(paramsTypes, [
-      executor.address,
-      executor.address,
+      safe.address,
+      safe.address,
+      safe.address,
       oracle.address,
       timeout,
       cooldown,
@@ -68,10 +71,11 @@ describe("Module works with factory", () => {
 
   it("should deploy new reality module proxy", async () => {
     const { factory, masterCopy } = await baseSetup();
-    const [executor, oracle] = await ethers.getSigners();
+    const [safe, oracle] = await ethers.getSigners();
     const paramsValues = [
-      executor.address,
-      executor.address,
+      safe.address,
+      safe.address,
+      safe.address,
       oracle.address,
       timeout,
       cooldown,
