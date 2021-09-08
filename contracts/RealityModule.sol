@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "@gnosis/zodiac/contracts/core/Module.sol";
+import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/RealitioV3.sol";
 
 abstract contract RealityModule is Module {
@@ -25,7 +25,12 @@ abstract contract RealityModule is Module {
         string indexed proposalId
     );
 
-    event RealityModuleSetup(address indexed initiator, address indexed avatar);
+    event RealityModuleSetup(
+        address indexed initiator,
+        address indexed owner,
+        address indexed avatar,
+        address target
+    );
 
     RealitioV3 public oracle;
     uint256 public template;
@@ -43,6 +48,7 @@ abstract contract RealityModule is Module {
 
     /// @param _owner Address of the owner
     /// @param _avatar Address of the avatar (e.g. a Safe)
+    /// @param _target Address of the contract that will call exec function
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
@@ -53,6 +59,7 @@ abstract contract RealityModule is Module {
     constructor(
         address _owner,
         address _avatar,
+        address _target,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -63,6 +70,7 @@ abstract contract RealityModule is Module {
         bytes memory initParams = abi.encode(
             _owner,
             _avatar,
+            _target,
             _oracle,
             timeout,
             cooldown,
@@ -77,6 +85,7 @@ abstract contract RealityModule is Module {
         (
             address _owner,
             address _avatar,
+            address _target,
             RealitioV3 _oracle,
             uint32 timeout,
             uint32 cooldown,
@@ -86,6 +95,7 @@ abstract contract RealityModule is Module {
         ) = abi.decode(
                 initParams,
                 (
+                    address,
                     address,
                     address,
                     RealitioV3,
@@ -99,24 +109,26 @@ abstract contract RealityModule is Module {
         require(!initialized, "Module is already initialized");
         initialized = true;
         require(_avatar != address(0), "Avatar can not be zero address");
+        require(_target != address(0), "Target can not be zero address");
         require(timeout > 0, "Timeout has to be greater 0");
         require(
             expiration == 0 || expiration - cooldown >= 60,
             "There need to be at least 60s between end of cooldown and expiration"
         );
         avatar = _avatar;
+        target = _target;
         oracle = _oracle;
         answerExpiration = expiration;
         questionTimeout = timeout;
         questionCooldown = cooldown;
-        questionArbitrator = avatar;
+        questionArbitrator = address(oracle);
         minimumBond = bond;
         template = templateId;
 
         __Ownable_init();
         transferOwnership(_owner);
 
-        emit RealityModuleSetup(msg.sender, avatar);
+        emit RealityModuleSetup(msg.sender, _owner, avatar, target);
     }
 
     /// @notice This can only be called by the owner
@@ -232,7 +244,7 @@ abstract contract RealityModule is Module {
     /// @notice This can only be called by the owner
     function markProposalAsInvalid(
         string memory proposalId,
-        bytes32[] memory txHashes // avatar only is checked in markProposalAsInvalidByHash(bytes32)
+        bytes32[] memory txHashes // owner only is checked in markProposalAsInvalidByHash(bytes32)
     ) public {
         string memory question = buildQuestion(proposalId, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
@@ -274,7 +286,7 @@ abstract contract RealityModule is Module {
         questionIds[questionHash] = INVALIDATED;
     }
 
-    /// @dev Executes the transactions of a proposal via the avatar if accepted
+    /// @dev Executes the transactions of a proposal via the target if accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param to Target of the transaction that should be executed
@@ -301,7 +313,7 @@ abstract contract RealityModule is Module {
         );
     }
 
-    /// @dev Executes the transactions of a proposal via the avatar if accepted
+    /// @dev Executes the transactions of a proposal via the target if accepted
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @param to Target of the transaction that should be executed
@@ -377,7 +389,7 @@ abstract contract RealityModule is Module {
         );
         // Mark transaction as executed
         executedProposalTransactions[questionHash][txHash] = true;
-        // Execute the transaction via the avatar.
+        // Execute the transaction via the target.
         require(exec(to, value, data, operation), "Module transaction failed");
     }
 

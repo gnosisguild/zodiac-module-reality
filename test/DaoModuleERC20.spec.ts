@@ -48,14 +48,14 @@ describe("RealityModuleERC20", async () => {
     const setupTestWithTestAvatar = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("RealityModuleERC20");
-        const module = await Module.deploy(base.avatar.address, base.avatar.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.avatar.address, base.avatar.address, base.avatar.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockAvatar = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("RealityModuleERC20");
-        const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
@@ -64,7 +64,7 @@ describe("RealityModuleERC20", async () => {
         it("throws if is already initialized", async () => {
             const { mock } = await baseSetup()
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
-            const module = await Module.deploy(user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
+            const module = await Module.deploy(user1.address, user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
                 module.setUp(buildMockInitializerParams(mock))
             ).to.be.revertedWith("Module is already initialized")
@@ -73,38 +73,45 @@ describe("RealityModuleERC20", async () => {
         it("throws if avatar is zero address", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await expect(
-                Module.deploy(user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337)
+                Module.deploy(user1.address, ZERO_ADDRESS, user1.address,  user1.address, 42, 23, 0, 0, 1337)
             ).to.be.revertedWith("Avatar can not be zero address")
+        })
+
+        it("throws if avatar is zero address", async () => {
+            const Module = await hre.ethers.getContractFactory("RealityModuleETH")
+            await expect(
+                Module.deploy(user1.address, user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337)
+            ).to.be.revertedWith("Target can not be zero address")
         })
 
         it("throws if timeout is 0", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
             await expect(
-                Module.deploy(user1.address, user1.address, user1.address, 0, 0, 0, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, user1.address, 0, 0, 0, 0, 0)
             ).to.be.revertedWith("Timeout has to be greater 0")
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
             await expect(
-                Module.deploy(user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
             ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
         })
 
         it("answer expiration can be 0", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
-            await Module.deploy(user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
+            await Module.deploy(user1.address, user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
         })
 
         it("should emit event because of successful set up", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
             const module = await Module.deploy(
-                user1.address, user1.address, user1.address, 1, 10, 0, 0, 0
+                user1.address, user1.address, user1.address, user1.address, 1, 10, 0, 0, 0
             )
             await module.deployed()
             await expect(module.deployTransaction)
             .to.emit(module, "RealityModuleSetup").
-            withArgs(user1.address, user1.address)
+            withArgs(user1.address, user1.address, user1.address, user1.address)
         })
     })
 
@@ -256,11 +263,11 @@ describe("RealityModuleERC20", async () => {
         })
 
         it("updates arbitrator", async () => {
-            const { module, avatar } = await setupTestWithTestAvatar();
+            const { module, avatar, oracle } = await setupTestWithTestAvatar();
 
             expect(
                 await module.questionArbitrator()
-            ).to.be.equals(avatar.address);
+            ).to.be.equals(oracle.address);
 
             const calldata = module.interface.encodeFunctionData("setArbitrator", [ethers.constants.AddressZero])
             await avatar.exec(module.address, 0, calldata)
@@ -678,7 +685,7 @@ describe("RealityModuleERC20", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, avatar.address, 42, 0, 0, 0, 0])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, mock.address, 42, 0, 0, 0, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -712,7 +719,7 @@ describe("RealityModuleERC20", async () => {
             await module.questionIds(questionHash)
         ).to.be.deep.equals(questionId)
 
-        const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, avatar.address, 42, 0, 0, 7331, 0])
+        const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, mock.address, 42, 0, 0, 7331, 0])
         expect(
             (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
         ).to.be.equals(1);
@@ -723,7 +730,7 @@ describe("RealityModuleERC20", async () => {
 
     describe("addProposalWithNonce", async () => {
         it("throws if previous nonce was not invalid", async () => {
-            const { module, mock, oracle, avatar } = await setupTestWithTestAvatar();
+            const { module, mock, oracle,  } = await setupTestWithTestAvatar();
             await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBondERC20"), 42)
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
@@ -761,7 +768,7 @@ describe("RealityModuleERC20", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, avatar.address, 42, 0, 1, 0, 0])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, mock.address, 42, 0, 1, 0, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -799,7 +806,7 @@ describe("RealityModuleERC20", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(questionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, avatar.address, 23, 0, 11, 0, 0])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, mock.address, 23, 0, 11, 0, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
@@ -810,7 +817,7 @@ describe("RealityModuleERC20", async () => {
         })
 
         it("can invalidate multiple times", async () => {
-            const { module, mock, oracle, avatar } = await setupTestWithTestAvatar();
+            const { module, mock, oracle } = await setupTestWithTestAvatar();
             const id = "some_random_id";
             const txHash = ethers.utils.solidityKeccak256(["string"], ["some_tx_data"]);
 
@@ -843,7 +850,7 @@ describe("RealityModuleERC20", async () => {
                 await module.questionIds(questionHash)
             ).to.be.deep.equals(finalQuestionId)
 
-            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, avatar.address, 42, 0, 1337, 0, 0])
+            const askQuestionCalldata = oracle.interface.encodeFunctionData("askQuestionWithMinBondERC20", [1337, question, mock.address, 42, 0, 1337, 0, 0])
             expect(
                 (await mock.callStatic.invocationCountForCalldata(askQuestionCalldata)).toNumber()
             ).to.be.equals(1);
