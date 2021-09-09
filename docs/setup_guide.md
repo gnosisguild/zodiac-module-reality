@@ -2,7 +2,7 @@
 
 This guide shows how to setup the Reality Module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
 
-The Reality Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools. If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates. For more information on the Reality Module (formerly SafeSnap) please refer to the [Gnosis blog post](https://blog.gnosis.pm/ea67eb95c34f).
+The Reality Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools. If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates. For more information on the Reality Module (formerly SafeSnap) please refer to the original [Gnosis blog post](https://blog.gnosis.pm/ea67eb95c34f).
 
 ## Prerequisites
 
@@ -86,7 +86,7 @@ Once your space is configured, you can attach transactions to your proposals via
 3. Add Reality Module (formerly DAO module) transaction
 
 <img src="./snapshot_module_add_tx.png"
-     alt="Add DAO module transaction"
+     alt="Add Reality Module transaction"
      width="250"/>
 <img src="./snapshot_module_tx_details.png"
      alt="Enter transactiond etails"
