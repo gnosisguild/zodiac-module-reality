@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "./DaoModule.sol";
+import "./RealityModule.sol";
 import "./interfaces/RealitioV3.sol";
 
-contract DaoModuleETH is DaoModule {
-    /// @param _executor Address of the executor (e.g. a Safe)
+contract RealityModuleETH is RealityModule {
+    /// @param _owner Address of the owner
+    /// @param _avatar Address of the avatar (e.g. a Safe)
+    /// @param _target Address of the contract that will call exec function
     /// @param _oracle Address of the oracle (e.g. Realitio)
     /// @param timeout Timeout in seconds that should be required for the oracle
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
@@ -14,7 +16,9 @@ contract DaoModuleETH is DaoModule {
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(
-        Executor _executor,
+        address _owner,
+        address _avatar,
+        address _target,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -22,8 +26,10 @@ contract DaoModuleETH is DaoModule {
         uint256 bond,
         uint256 templateId
     )
-        DaoModule(
-            _executor,
+        RealityModule(
+            _owner,
+            _avatar,
+            _target,
             _oracle,
             timeout,
             cooldown,
@@ -33,10 +39,11 @@ contract DaoModuleETH is DaoModule {
         )
     {}
 
-    function askQuestion(
-        string memory question,
-        uint256 nonce
-    ) internal override returns (bytes32) {
+    function askQuestion(string memory question, uint256 nonce)
+        internal
+        override
+        returns (bytes32)
+    {
         // Ask the question with a starting time of 0, so that it can be immediately answered
         return
             RealitioV3ETH(address(oracle)).askQuestionWithMinBond(

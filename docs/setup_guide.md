@@ -52,17 +52,32 @@ For this guide we will assume that the returned template id is `0x00000000000000
 
 ### Deploying the module
 
-Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. This setup task requires the following parameters: `dao` (the address of the Safe), `oracle` (the address of the Reality.eth contract) and `template` (the template to be used with Reality.eth). There are also optional parameters with more information at `yarn hardhat setup --help`.
+Hardhat tasks can be used to deploy a Reality Module instance. There are two different tasks, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`).
+
+On Rinkeby, the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232`,and the address of the master copy of the Reality Module  is: `0x4D0D4Bd6eCA52f2F931c099B6a8a8B2ae85FFD4E`.
+
+Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. These tasks requires the following parameters:
+
+- `avatar` - the address of the avatar.
+- `owner` - the address of the owner
+- `oracle` - the address of the Realitio contract
+- `template` - the template to be used with Realitio
+
+There are also optional parameters, for more information run `yarn hardhat setup --help` or `yarn hardhat factory-setup --help`.
 
 An example for this on Rinkeby would be:
-`yarn hardhat --network rinkeby setup --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby setup --owner <owner_address> --avatar <avatar_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
-This should return the address of the deployed DAO module. For this guide we assume this to be `0x4242424242424242424242424242424242424242`
+or
+
+`yarn hardhat --network rinkeby factorySetup --factory <factory_address> --mastercopy <mastercopy_address> --owner <owner_address> --avatar <avatar_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+
+or
 
 Once the module is deployed you should verify the source code. If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment, you can use the provided hardhat task to do this. 
 
 An example for this on Rinkeby would be:
-`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --dao <safe_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --owner <owner_address> --avatar <avatar_address> --oracle 0x3D00D77ee771405628a4bA4913175EcC095538da --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 ### Enabling the module
 
@@ -77,7 +92,6 @@ Once your space is configured, you can attach transactions to your proposals via
 1. Open the plugin selection
 
 ![Open the plugin selection](./snapshot_plugin_section.png)
-
 
 2. Add Reality Module plugin
 
@@ -117,9 +131,13 @@ event ProposalQuestionCreated(
 );
 ```
 
-There are different services available for monitoring such as the [OpenZepplin Defender Sentinel](https://docs.openzeppelin.com/defender/sentinel).
-
-
 ## Support
 
 If you have any questions about the Reality Module or the Zodiac collection of tools, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq).
+
+There are different services available for this such as the [OpenZepplin Defender Sentinel](https://docs.openzeppelin.com/defender/sentinel).
+
+### Deploy a master copy 
+
+The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the RealityModule contracts gets an update and the ones referred on the (zodiac repository)[https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts] should be used.
+

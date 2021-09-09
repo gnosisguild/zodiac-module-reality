@@ -6,3 +6,4 @@ env/
 .env
 .history
 coverage*
+deployments
