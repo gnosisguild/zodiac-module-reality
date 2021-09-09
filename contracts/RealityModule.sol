@@ -106,8 +106,7 @@ abstract contract RealityModule is Module {
                     uint256
                 )
             );
-        require(!initialized, "Module is already initialized");
-        initialized = true;
+        __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         require(timeout > 0, "Timeout has to be greater 0");
@@ -125,7 +124,6 @@ abstract contract RealityModule is Module {
         minimumBond = bond;
         template = templateId;
 
-        __Ownable_init();
         transferOwnership(_owner);
 
         emit RealityModuleSetup(msg.sender, _owner, avatar, target);
