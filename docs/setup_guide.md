@@ -14,13 +14,10 @@ The guide will use the Rinkeby ETH RealitioV3 contract at [`0xDf33060F476F8cff75
 
 DISCLAIMER: Check the deployed Realitio contracts before using them.
 
-## Setting up the module
-
-The first step is to deploy the module. Every DAO will have their own module. The module is linked to a DAO (called executor in the contract) and an oracle (e.g. RealitioV3).
-
-As part of the setup you need to define or choose a template on Realitio. More information can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information).
 
 ### Setup the Realitio template
+
+As part of the setup you need to define or choose a template on Realitio. More information can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information).
 
 To define your own template a hardhat task is provided in the repository. It is possible to provide a template to that task via `--template` else the [default template](../src/tasks/defaultTemplate.json) is used.
 
@@ -77,7 +74,7 @@ This task requires the following parameters:
 - `iserc20` (optional) - If set to true, the module `RealityERC20` is going to be deployed, otherwise `RealityETH` is deployed. By default is false
 - `proxied` (optional) - Deploys the module through a proxy factory
 
-There are more optional parameters parameters, for more information run `yarn hardhat setup --help`.
+There are more optional parameters, for more information run `yarn hardhat setup --help`.
 
 An example for this on Rinkeby would be:
 `yarn hardhat --network rinkeby setup --owner <owner_address> --avatar <avatar_address> --target <target_address> --oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64 --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
