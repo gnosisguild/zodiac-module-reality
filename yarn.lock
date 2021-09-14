@@ -509,10 +509,10 @@
   resolved "https://registry.yarnpkg.com/@gnosis.pm/safe-contracts/-/safe-contracts-1.3.0.tgz#316741a7690d8751a1f701538cfc9ec80866eedc"
   integrity sha512-1p+1HwGvxGUVzVkFjNzglwHrLNA67U/axP0Ct85FzzH8yhGJb4t9jDjPYocVMzLorDoWAfKicGy1akPY9jXRVw==
 
-"@gnosis.pm/zodiac@0.0.1-prealpha7":
-  version "0.0.1-prealpha7"
-  resolved "https://registry.yarnpkg.com/@gnosis.pm/zodiac/-/zodiac-0.0.1-prealpha7.tgz#0e648e45ca71cbe34fcc25e4c49332570c21d48b"
-  integrity sha512-BPgND+dozu3c0g0Tijm/DbYC/Xo51/EQHnCMN8yK1glogsM13BEkto8dshzTxXgwrRRyv6X46CGPLeNg7D56zQ==
+"@gnosis.pm/zodiac@1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@gnosis.pm/zodiac/-/zodiac-1.0.1.tgz#36d3df705319909661429af72fc4cea295b21ddf"
+  integrity sha512-MBfTXmE9LO8xcByrMxaH9RhwHObzn1ZNrd3g00ly0836wmRq/PJOvVbHJ51McD3VoVveaFFC8S5OVwomRZNFpw==
   dependencies:
     "@gnosis.pm/mock-contract" "^4.0.0"
     "@gnosis.pm/safe-contracts" "1.3.0"
