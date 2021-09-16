@@ -107,6 +107,8 @@ Follow our [SafeSnap Setup Guide](./docs/setup_guide.md) to setup a Reality modu
 
 An audit has been performed by the [G0 group](https://github.com/g0-group).
 
+No issues have been discovered.
+
 The audit results are available as a pdf in [this repo](./docs/ZodiacRealityModuleSep2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/e11752abb010f74e32a6fc61142032a10deed578/ZodiacRealityModuleSep2021.pdf).
 
 ### Security and Liability
