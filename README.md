@@ -110,6 +110,10 @@ Follow our [Reality Module Setup Guide](./docs/setup_guide.md) to setup a Zodiac
 
 An audit has been performed by the [G0 group](https://github.com/g0-group).
 
-All issues and notes of the audit have been addressed in commit [7a5244d0a0a70b023d23af59659e0c055be7cca2](https://github.com/gnosis/zodiac-module-reality/commit/7a5244d0a0a70b023d23af59659e0c055be7cca2).
+No issues have been discovered.
 
-The audit results are available as a pdf in [this repo](./docs/GnosisDaoRealitioModuleMar2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/4e172e8b44012c6bf2346e9925df5e0f27a40d7a/GnosisDaoRealitioModuleMar2021.pdf).
+The audit results are available as a pdf in [this repo](audits/ZodiacRealityModuleSep2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/e11752abb010f74e32a6fc61142032a10deed578/ZodiacRealityModuleSep2021.pdf).
+
+### Security and Liability
+
+All contracts are WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

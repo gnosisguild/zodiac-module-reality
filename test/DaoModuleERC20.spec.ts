@@ -67,7 +67,7 @@ describe("RealityModuleERC20", async () => {
             const module = await Module.deploy(user1.address, user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
             await expect(
                 module.setUp(buildMockInitializerParams(mock))
-            ).to.be.revertedWith("Module is already initialized")
+            ).to.be.revertedWith("Initializable: contract is already initialized")
         })
 
         it("throws if avatar is zero address", async () => {
