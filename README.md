@@ -16,7 +16,7 @@ These two components (`proposalId` and `txHashes`) uniquely identify a question 
 
 Once the question on Reality.eth has resolved to "yes", meaning that the transactions should be executed, they are submitted to the immutable executor defined in the module. Transactions defined in questions that resolve to "no" or "invalid" cannot be executed by the module.
 
-This module is intended to be used with [Gnosis Safe](https://github.com/gnosis/safe-contracts), but it ultimately framework agnostic.
+This module is intended to be used with [Gnosis Safe](https://github.com/gnosis/safe-contracts), but it is ultimately framework agnostic.
 
 ### Features
 - Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Reality.eth question that validates the execution of the connected transactions.
@@ -53,18 +53,18 @@ The reference oracle implementations are the Reality.eth contracts. These can be
 
 - https://www.npmjs.com/package/@realitio/realitio-contracts
 - https://github.com/realitio/realitio-contracts/
-  - Ether: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
+  - ETH: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
   - ERC20: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
 
 ### Failed transactions
 
-It is required that the transactions from a proposal are successful (should not internally revert for any reason). If any of the transactions of a proposal fail, it will not be possible to continue with the execution of the following transactions. This is to prevent subsequent transactions being executed in a scenario in which earlier transactions failed due to the gas limit being too low or due to other errors.
+The Reality Modules requires proposal transactions are successful (e.g. transactions should not internally revert for any reason). If any of the transactions of a proposal fail, it will not be possible to continue with the execution of the following transactions. This is to prevent subsequent transactions being executed in a scenario in which earlier transactions failed due to the gas limit being too low or due to other errors.
 
-Transactions that failed will _not_ be marked as executed and therefore can be executed at any later point in time. This is a potential risk and therefore it is recommended to either set an answer expiration time or invalidate the proposal (e.g. via another proposal).
+Transactions that failed will _not_ be marked as executed, and therefore, they can be executed at any later point in time. This is a potential risk, and therefore it is recommended to either set an answer expiration time or invalidate the proposal (e.g. via another proposal).
 
 ### Answer expiration
 
-The module can be configured so that positive answers will expire after a certain time. This can be done by calling `setAnswerExpiration` with a duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed, to prevent them from being unexpectedly executed in the future. Negative answers (no or invalid) cannot expire.
+The Reality Module can be configured so that positive answers will expire after a certain time. This can be done by calling `setAnswerExpiration` with a duration in seconds. If the transactions related to the proposal are not executed before the answer expires, it will not be possible to execute them. This is useful in the case of transactions that revert and therefore cannot be executed in order to prevent them from being unexpectedly executed in the future. Negative answers (no or invalid) cannot expire.
 
 Note: If the expiration time is set to `0`, answers will never expire. This also means answers that expired before will become available again. To prevent this, it is recommended to call `markProposalWithExpiredAnswerAsInvalid` immediately after any proposal expires (or on all outstanding expired answers prior to setting the expiration date to `0`). This will mark a proposal with an expired answer as invalid. This method can be called by anyone.
 
