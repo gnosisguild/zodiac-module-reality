@@ -1,7 +1,7 @@
 {
   "name": "zodiac-module-reality",
   "version": "1.0.0",
-  "description": "A module that allows on-chain execution triggered by answers from the Reality.eth oracle.",
+  "description": "A module that allows on-chain execution triggered by answers from a Reality.eth oracle.",
   "directories": {
     "test": "test"
   },
