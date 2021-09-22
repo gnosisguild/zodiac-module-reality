@@ -39,6 +39,7 @@ const deployRealityModule = async (taskArgs: RealityTaskArgs, hardhatRuntime: Ha
                     "uint32",
                     "uint256",
                     "uint256",
+                    "address",
                 ],
                 values: [
                     taskArgs.owner,
@@ -50,6 +51,7 @@ const deployRealityModule = async (taskArgs: RealityTaskArgs, hardhatRuntime: Ha
                     taskArgs.expiration,
                     taskArgs.bond,
                     taskArgs.template,
+                    taskArgs.oracle,
                 ],
             },
             hardhatRuntime.ethers.provider,
@@ -64,7 +66,7 @@ const deployRealityModule = async (taskArgs: RealityTaskArgs, hardhatRuntime: Ha
         
     const ModuleName = taskArgs.iserc20 ? "RealityModuleERC20" : "RealityModuleETH"
     const Module = await hardhatRuntime.ethers.getContractFactory(ModuleName);
-    const module = await Module.deploy(taskArgs.owner, taskArgs.avatar, taskArgs.target, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template);
+    const module = await Module.deploy(taskArgs.owner, taskArgs.avatar, taskArgs.target, taskArgs.oracle, taskArgs.timeout, taskArgs.cooldown, taskArgs.expiration, taskArgs.bond, taskArgs.template, taskArgs.oracle);
     await module.deployTransaction.wait()
     console.log("Module deployed to:", module.address);
 }
@@ -108,7 +110,7 @@ task("verifyEtherscan", "Verifies the contract on etherscan")
         await hardhatRuntime.run("verify", {
             address: taskArgs.module,
             constructorArgsParams: [
-                taskArgs.owner, taskArgs.avatar, taskArgs.oracle, taskArgs.target, `${taskArgs.timeout}`, `${taskArgs.cooldown}`, `${taskArgs.expiration}`, `${taskArgs.bond}`, taskArgs.template
+                taskArgs.owner, taskArgs.avatar, taskArgs.target, taskArgs.oracle, `${taskArgs.timeout}`, `${taskArgs.cooldown}`, `${taskArgs.expiration}`, `${taskArgs.bond}`, taskArgs.template, taskArgs.oracle
             ]
         })
     });

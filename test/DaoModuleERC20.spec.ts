@@ -48,14 +48,14 @@ describe("RealityModuleERC20", async () => {
     const setupTestWithTestAvatar = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("RealityModuleERC20");
-        const module = await Module.deploy(base.avatar.address, base.avatar.address, base.avatar.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.avatar.address, base.avatar.address, base.avatar.address, base.mock.address, 42, 23, 0, 0, 1337, base.mock.address);
         return { ...base, Module, module };
     })
 
     const setupTestWithMockAvatar = deployments.createFixture(async () => {
         const base = await baseSetup();
         const Module = await hre.ethers.getContractFactory("RealityModuleERC20");
-        const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337);
+        const module = await Module.deploy(base.mock.address, base.mock.address, base.mock.address, base.mock.address, 42, 23, 0, 0, 1337, base.mock.address);
         return { ...base, Module, module };
     })
     const [user1] = waffle.provider.getWallets();
@@ -64,7 +64,7 @@ describe("RealityModuleERC20", async () => {
         it("throws if is already initialized", async () => {
             const { mock } = await baseSetup()
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
-            const module = await Module.deploy(user1.address, user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337)
+            const module = await Module.deploy(user1.address, user1.address, user1.address, user1.address, 42, 23, 0, 0, 1337, user1.address)
             await expect(
                 module.setUp(buildMockInitializerParams(mock))
             ).to.be.revertedWith("Initializable: contract is already initialized")
@@ -73,40 +73,40 @@ describe("RealityModuleERC20", async () => {
         it("throws if avatar is zero address", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await expect(
-                Module.deploy(user1.address, ZERO_ADDRESS, user1.address,  user1.address, 42, 23, 0, 0, 1337)
+                Module.deploy(user1.address, ZERO_ADDRESS, user1.address,  user1.address, 42, 23, 0, 0, 1337, user1.address)
             ).to.be.revertedWith("Avatar can not be zero address")
         })
 
         it("throws if avatar is zero address", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleETH")
             await expect(
-                Module.deploy(user1.address, user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337)
+                Module.deploy(user1.address, user1.address, ZERO_ADDRESS, user1.address, 42, 23, 0, 0, 1337, user1.address)
             ).to.be.revertedWith("Target can not be zero address")
         })
 
         it("throws if timeout is 0", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
             await expect(
-                Module.deploy(user1.address, user1.address, user1.address, user1.address, 0, 0, 0, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, user1.address, 0, 0, 0, 0, 0, user1.address)
             ).to.be.revertedWith("Timeout has to be greater 0")
         })
 
         it("throws if not enough time between cooldown and expiration", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
             await expect(
-                Module.deploy(user1.address, user1.address, user1.address, user1.address, 1, 0, 59, 0, 0)
+                Module.deploy(user1.address, user1.address, user1.address, user1.address, 1, 0, 59, 0, 0, user1.address)
             ).to.be.revertedWith("There need to be at least 60s between end of cooldown and expiration")
         })
 
         it("answer expiration can be 0", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
-            await Module.deploy(user1.address, user1.address, user1.address, user1.address, 1, 10, 0, 0, 0)
+            await Module.deploy(user1.address, user1.address, user1.address, user1.address, 1, 10, 0, 0, 0, user1.address)
         })
 
         it("should emit event because of successful set up", async () => {
             const Module = await hre.ethers.getContractFactory("RealityModuleERC20")
             const module = await Module.deploy(
-                user1.address, user1.address, user1.address, user1.address, 1, 10, 0, 0, 0
+                user1.address, user1.address, user1.address, user1.address, 1, 10, 0, 0, 0, user1.address
             )
             await module.deployed()
             await expect(module.deployTransaction)

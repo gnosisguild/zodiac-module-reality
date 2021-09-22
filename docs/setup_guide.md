@@ -43,7 +43,7 @@ The template should have the following format:
 Using this template you can run the task by using `yarn hardhat --network <network> createDaoTemplate --oracle <oracle address> --template <your template json>` and this should provide you with a template id.
 
 An example for this on Rinkeby would be (using the default template):
-`yarn hardhat --network rinkeby createDaoTemplate ---oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64`
+`yarn hardhat --network rinkeby createDaoTemplate --oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64`
 
 For this guide we will assume that the returned template id is `0x0000000000000000000000000000000000000000000000000000000000000dad`
 
@@ -51,16 +51,17 @@ You can also create your template from this (UI)[https://reality.eth.link/app/te
 
 ### Deploying the module
 
-The module has nine attributes which are:
-- Owner: address that can call setter functions
-- Avatar: address of the DAO (e.g Safe)
+The module has ten attributes which are:
+- Owner: address that can call setter functions.
+- Avatar: address of the DAO (e.g Safe).
 - Target: address that the module will call `execModuleTransaction()` on.
-- Oracle: address of the oracle (e.g RealitioV3)
-- Timeout: Timeout in seconds that should be required for the oracle
-- Cooldown: Amount in seconds of cooldown required before the transaction can be executed
-- Expiration: Duration that a transaction is valid in seconds (or 0 if valid forever) after the cooldown
-- Bond: Minimum bond that is required for an answer to be accepted
-- Template ID: ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
+- Oracle: address of the oracle (e.g RealitioV3).
+- Timeout: Timeout in seconds that should be required for the oracle.
+- Cooldown: Amount in seconds of cooldown required before the transaction can be executed.
+- Expiration: Duration that a transaction is valid in seconds (or 0 if valid forever) after the cooldown.
+- Bond: Minimum bond that is required for an answer to be accepted.
+- Template ID: ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information).
+- Arbitrator: the oracle's arbitrator (e.g. see Realitio's arbitrator [requirements](https://realitio.github.io/docs/html/arbitrators.html) and its arbitrators [list](https://github.com/realitio/realitio-contracts/blob/master/config/arbitrators.json)).
 
 
 Hardhat tasks can be used to deploy a Reality Module instance. There are two different ways to deploy the module, the first one is through a normal deployment and passing arguments to the constructor (without the `proxied` flag), or, deploy the module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the `proxied` flag) - The master copy and factory address can be found in the [zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) and these are the addresses that are going to be used when deploying the module through factory.
