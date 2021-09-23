@@ -43,7 +43,7 @@ The template should have the following format:
 Using this template you can run the task by using `yarn hardhat --network <network> createDaoTemplate --oracle <oracle address> --template <your template json>` and this should provide you with a template id.
 
 An example for this on Rinkeby would be (using the default template):
-`yarn hardhat --network rinkeby createDaoTemplate ---oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64`
+`yarn hardhat --network rinkeby createDaoTemplate --oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64`
 
 For this guide we will assume that the returned template id is `0x0000000000000000000000000000000000000000000000000000000000000dad`
 
