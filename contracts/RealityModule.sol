@@ -55,6 +55,7 @@ abstract contract RealityModule is Module {
     /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @param templateId ID of the template that should be used for proposal questions (see https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
+    /// @param arbitrator Address of the arbitrator that will secure the oracle resolution
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     constructor(
         address _owner,
@@ -65,7 +66,8 @@ abstract contract RealityModule is Module {
         uint32 cooldown,
         uint32 expiration,
         uint256 bond,
-        uint256 templateId
+        uint256 templateId,
+        address arbitrator
     ) {
         bytes memory initParams = abi.encode(
             _owner,
@@ -76,7 +78,8 @@ abstract contract RealityModule is Module {
             cooldown,
             expiration,
             bond,
-            templateId
+            templateId,
+            arbitrator
         );
         setUp(initParams);
     }
@@ -91,7 +94,8 @@ abstract contract RealityModule is Module {
             uint32 cooldown,
             uint32 expiration,
             uint256 bond,
-            uint256 templateId
+            uint256 templateId,
+            address arbitrator
         ) = abi.decode(
                 initParams,
                 (
@@ -103,7 +107,8 @@ abstract contract RealityModule is Module {
                     uint32,
                     uint32,
                     uint256,
-                    uint256
+                    uint256,
+                    address
                 )
             );
         __Ownable_init();
@@ -120,7 +125,7 @@ abstract contract RealityModule is Module {
         answerExpiration = expiration;
         questionTimeout = timeout;
         questionCooldown = cooldown;
-        questionArbitrator = address(oracle);
+        questionArbitrator = arbitrator;
         minimumBond = bond;
         template = templateId;
 
