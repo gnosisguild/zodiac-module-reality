@@ -99,7 +99,14 @@ To allow the Reality Module to actually execute transactions, you must enable it
 
 ## Snapshot integration
 
-Once the module has been setup, it is possible to configure a space on [Snapshot](https://snapshot.org/) with the DAO Module (Reality Module) plugin. For this, the space configuration needs to include `"plugins": { "daoModule": { "address": "<module_address>"} }`. An example of this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
+Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the SafeSnap plugin. For this the space settings needs to include the SafeSnap plugin with this configuration: 
+```
+{
+  "address": "<module_address>"
+}
+```
+. 
+An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
 
 Once your space is configured, you can attach transactions to your proposals via the plugin section:
 
@@ -109,7 +116,10 @@ Once your space is configured, you can attach transactions to your proposals via
 
 2. Add Reality Module (formerly DAO Module) plugin
 
-![Add Reality Module (formerly DAO Module) plugin](./snapshot_add_plugin.png)
+2. Add SafeSnap plugin
+
+![Add SafeSnap plugin](./snapshot_add_plugin.png)
+
 
 3. Add Reality Module (formerly DAO module) transaction
 
