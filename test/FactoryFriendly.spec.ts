@@ -25,6 +25,7 @@ describe("Module works with factory", () => {
     "uint32",
     "uint256",
     "uint256",
+    "address",
   ];
 
   const baseSetup = deployments.createFixture(async () => {
@@ -42,7 +43,8 @@ describe("Module works with factory", () => {
       0,
       60,
       0,
-      0
+      0,
+      ZERO_ADDRESS
     );
 
     return { factory, masterCopy };
@@ -62,6 +64,7 @@ describe("Module works with factory", () => {
       expiration,
       bond,
       templateId,
+      oracle.address,
     ]);
 
     await expect(masterCopy.setUp(encodedParams)).to.be.revertedWith(
@@ -82,6 +85,7 @@ describe("Module works with factory", () => {
       expiration,
       bond,
       templateId,
+      oracle.address,
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
     const initParams = masterCopy.interface.encodeFunctionData(

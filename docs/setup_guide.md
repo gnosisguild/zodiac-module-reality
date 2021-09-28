@@ -53,7 +53,7 @@ You can also create your template from this Reality.eth Template Builder [UI](ht
 
 Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle. 
 
-The module has nine attributes:
+The module has ten attributes:
 
 - `Owner`: Address that can call setter functions
 - `Avatar`: Address of the DAO (e.g a Gnosis Safe)
@@ -64,6 +64,8 @@ The module has nine attributes:
 - `Expiration`: Duration that a transaction is valid in seconds (or 0 if valid forever) after the cooldown
 - `Bond`: Minimum bond that is required for an answer to be accepted
 - `Template ID`: ID of the template used for proposal questions (more information on how to format templates can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
+- `Arbitrator`: The oracle's arbitrator (e.g. see Realitio's arbitrator [requirements](https://realitio.github.io/docs/html/arbitrators.html) and its arbitrators [list](https://github.com/realitio/realitio-contracts/blob/master/config/arbitrators.json)).
+
 
 
 Hardhat tasks can be used to deploy the Reality Module instance. There are two different ways to deploy the module, the first one is through a normal deployment, passing arguments to the constructor (without the `proxied` flag), or to deploy the module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) (with the `proxied` flag) to save on gas costs.
@@ -153,4 +155,3 @@ If you have any questions about the Reality Module or the Zodiac collection of t
 ## Deploy a master copy 
 
 The master copy contracts can be deployed through the `yarn deploy` command. Note that this only should be done if the Reality Module contracts are updated. The ones referred to on the [Zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) should be used.
-
