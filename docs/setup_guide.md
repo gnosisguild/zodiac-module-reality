@@ -49,8 +49,7 @@ For example, on Rinkeby using the default template this would be:
 
 For this guide we will assume that the returned template id is `0x0000000000000000000000000000000000000000000000000000000000000dad`.
 
-You can also create your template from this Reality.eth Template Builder [UI](https://reality.eth.link/app/template-generator/).
-
+You can also create your template using the [Reality.eth Template Builder UI](https://reality.eth.link/app/template-generator/). For more info on using it, [use this guide](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/add-template#template-builder).
 
 Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle. 
 
@@ -100,7 +99,7 @@ To allow the Reality module to actually execute transaction it is required to en
 
 ## Snapshot integration
 
-To setup on snapshot view our [Snapshot integration guide here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/integrate-snapshot)
+To setup the newly deployed module on snapshot view our [Snapshot integration guide here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/integrate-snapshot). 
 
 ## Monitoring your module
 
