@@ -18,6 +18,8 @@ Once the question on Reality.eth has resolved to "yes", meaning that the transac
 
 This module is intended to be used with [Gnosis Safe](https://github.com/gnosis/safe-contracts), but it is ultimately framework agnostic.
 
+### Setup Guides
+
 [View docs for setting this module up with the UI](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started)
 
 [View docs for setting this module up with the command line](./docs/setup_guide.md)
