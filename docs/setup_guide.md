@@ -95,7 +95,7 @@ An example of this on Rinkeby would be:
 
 ### Enabling the module
 
-To allow the Reality module to actually execute transaction it is required to enable it on the Safe that it is connected to. For this it is possible to use the Zodiac app (enabling a custom module with the address of your newly deployed module above) or the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module with the transaction builder](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
+To allow the Reality Module to actually execute transactions, you must enable it on the Gnosis Safe to which it is connected. For this, it is possible to use the Zodiac app (enabling a custom module with the address of your newly deployed module above) or the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module with the transaction builder](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
 
 ## Snapshot integration
 
