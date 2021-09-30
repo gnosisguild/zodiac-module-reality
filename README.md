@@ -18,6 +18,14 @@ Once the question on Reality.eth has resolved to "yes", meaning that the transac
 
 This module is intended to be used with [Gnosis Safe](https://github.com/gnosis/safe-contracts), but it is ultimately framework agnostic.
 
+### Setup Guides
+
+This module can be setup either using the Zodiac App's UI or by using command line tools; both methods allow for connecting to Snapshot.
+
+[View docs for using the Zodiac App](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started)
+
+[View docs for using the command line](./docs/setup_guide.md)
+
 ### Features
 - Submit proposals uniquely identified by a `proposalId` and an array of `txHashes`, to create a Reality.eth question that validates the execution of the connected transactions.
 - Proposals can be marked invalid by the `executor` using `markProposalInvalid`, thereby preventing the execution of the transactions related to that proposal.
@@ -100,11 +108,6 @@ Note: If the expiration time is set to `0`, answers will never expire. This also
 ### Solidity Compiler
 
 The contracts have been developed with [Solidity 0.8.0](https://github.com/ethereum/solidity/releases/tag/v0.8.0) in mind. This version of Solidity made all arithmetic checked by default, therefore eliminating the need for explicit overflow or underflow (or other arithmetic) checks.
-
-### Setup Guide
-
-Follow our [Reality Module Setup Guide](./docs/setup_guide.md) to setup a Zodiac Reality Module and connect it to Snapshot.
-
 
 ### Audits
 

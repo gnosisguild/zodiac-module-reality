@@ -1,6 +1,8 @@
 # Zodiac Reality Module Setup Guide
 
-This guide shows how to set up the Reality Module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
+This is a technical guide that uses command line tools, [to set up using the Zodiac App and UI, go here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started)
+
+This guide shows how to setup the Reality module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
 
 The Reality Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools. If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates. For more information on the Reality Module (formerly SafeSnap) please refer to the original [Gnosis blog post](https://blog.gnosis.pm/ea67eb95c34f).
 
@@ -47,9 +49,7 @@ For example, on Rinkeby using the default template this would be:
 
 For this guide we will assume that the returned template id is `0x0000000000000000000000000000000000000000000000000000000000000dad`.
 
-You can also create your template from this Reality.eth Template Builder [UI](https://reality.eth.link/app/template-generator/).
-
-### Deploying the module
+You can also create your template using the [Reality.eth Template Builder UI](https://reality.eth.link/app/template-generator/). For more info on using it, [use this guide](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/add-template#template-builder).
 
 Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle. 
 
@@ -95,53 +95,11 @@ An example of this on Rinkeby would be:
 
 ### Enabling the module
 
-To allow the Reality Module to actually execute transactions, you must enable it on the Gnosis Safe to which it is connected. For this, it is possible to use the Bundle Transactions tab on [https://rinkeby.gnosis-safe.io](https://rinkeby.gnosis-safe.io), which is accompanied by our tutorial on [adding a module](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
+To allow the Reality Module to actually execute transactions, you must enable it on the Gnosis Safe to which it is connected. For this, it is possible to use the Zodiac app (enabling a custom module with the address of your newly deployed module above) or the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module with the transaction builder](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
 
 ## Snapshot integration
 
-Once the module is setup it is possible to configure a space on [Snapshot](https://snapshot.org/) to enable the SafeSnap plugin. For this the space settings needs to include the SafeSnap plugin with this configuration: 
-```
-{
-  "address": "<module_address>"
-}
-```
-. 
-An example for this can be found in the [🍯DAO space configuration](https://cloudflare-ipfs.com/ipfs/QmahDCSkdED9BLZ3VtH6aJ8P5TmvMYEfA7fJa4hGsvEpi2/).
-
-Once your space is configured, you can attach transactions to your proposals via the plugin section:
-
-1. Open the plugin selection
-
-![Open the plugin selection](./snapshot_plugin_section.png)
-
-2. Add Reality Module (formerly DAO Module) plugin
-
-2. Add SafeSnap plugin
-
-![Add SafeSnap plugin](./snapshot_add_plugin.png)
-
-
-3. Add Reality Module (formerly DAO module) transaction
-
-<img src="./snapshot_module_add_tx.png"
-     alt="Add Reality Module transaction"
-     width="250"/>
-<img src="./snapshot_module_tx_details.png"
-     alt="Enter transactiond etails"
-     width="250" />
-<img src="./snapshot_module_tx_confirm.png"
-     alt="Check transaction details"
-     width="250"/>
-
-4. Check preview of transactions
-
-![Transactions preview](./snapshot_plugin_preview.png)
-
-Once the proposal has been resolved, it is possible to submit the proposal to the Reality Module via the plugin. 
-
-This can also be done via the hardhat tasks provided in this repository. For more information, run `yarn hardhat addProposal --help` or `yarn hardhat executeProposal --help`.
-
-Once the proposal question has been submitted, it can be answered via the Reality.eth web interface: [https://reality.eth.link/app/](https://reality.eth.link/app/).
+To setup the newly deployed module on snapshot view our [Snapshot integration guide here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/integrate-snapshot). 
 
 ## Monitoring your module
 
