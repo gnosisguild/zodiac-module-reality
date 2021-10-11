@@ -75,10 +75,10 @@ task("setup", "Provides the clearing price to an auction")
     .addParam("owner", "Address of the owner", undefined, types.string)
     .addParam("avatar", "Address of the avatar (e.g. Safe)", undefined, types.string)
     .addParam("target", "Address of the target", undefined, types.string)
-    .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
+    .addParam("oracle", "Address of the oracle (e.g. Reality.eth)", undefined, types.string)
     .addParam(
         "template", 
-        "Template that should be used for proposal questions (See https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)", 
+        "Template that should be used for proposal questions (See http://reality.eth.link/app/docs/html/whitepaper.html#structuring-and-fetching-information)", 
         undefined, 
         types.string
     )
@@ -95,10 +95,10 @@ task("verifyEtherscan", "Verifies the contract on etherscan")
     .addParam("owner", "Address of the owner", undefined, types.string)
     .addParam("avatar", "Address of the avatar (e.g. Safe)", undefined, types.string)
     .addParam("target", "Address of the target", undefined, types.string)
-    .addParam("oracle", "Address of the oracle (e.g. Realitio)", undefined, types.string)
+    .addParam("oracle", "Address of the oracle (e.g. Reality.eth)", undefined, types.string)
     .addParam(
         "template", 
-        "Template that should be used for proposal questions (See https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)", 
+        "Template that should be used for proposal questions (See http://reality.eth.link/app/docs/html/whitepaper.html#structuring-and-fetching-information)", 
         undefined, 
         types.string
     )
@@ -116,7 +116,7 @@ task("verifyEtherscan", "Verifies the contract on etherscan")
     });
 
 task("createDaoTemplate", "Creates a question template on the oracle address")
-    .addParam("oracle", "Address of the oracle (e.g. RealitioV3)", undefined, types.string)
+    .addParam("oracle", "Address of the oracle (e.g. Reality.eth)", undefined, types.string)
     .addParam(
         "template", 
         "Template string for question (should include placeholders for proposal id and txs hash)", 

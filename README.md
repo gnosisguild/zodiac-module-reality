@@ -59,10 +59,10 @@ The Reality Module depends on an oracle to determine if a proposal was expected 
 
 The reference oracle implementations are the Reality.eth contracts. These can be found on:
 
-- https://www.npmjs.com/package/@realitio/realitio-contracts
-- https://github.com/realitio/realitio-contracts/
-  - ETH: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/Realitio.sol
-  - ERC20: https://github.com/realitio/realitio-contracts/blob/master/truffle/contracts/RealitioERC20.sol
+- https://www.npmjs.com/package/@reality.eth/contracts
+- https://github.com/realityETH/monorepo/
+  - ETH: https://github.com/RealityETH/monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol
+  - ERC20: https://github.com/RealityETH/monorepo/blob/main/packages/contracts/flat/RealityETH_ERC20-3.0.sol
 
 ### Failed transactions
 
