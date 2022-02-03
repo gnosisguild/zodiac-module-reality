@@ -52,7 +52,7 @@ There is a chance that a question is marked invalid on the oracle (e.g. if it is
 #### Oracle / Reality.eth
 
 The Reality Module depends on an oracle to determine if a proposal was expected and deemed valid. The following assumptions are being made:
-- The oracle MUST implement the [Reality.eth contract interface](./contracts/interfaces/Realitio.sol).
+- The oracle MUST implement the [Reality.eth contract interface](./contracts/interfaces/RealitioV3.sol).
 - It MUST not be possible to ask the same question with the same parameters again.
 - Once a result is known and finalized for a question, it MUST not change.
 - The oracle MUST use the same question ID generation algorithm as this module.
