@@ -2,7 +2,7 @@
 
 This is a technical guide that uses command line tools, [to set up using the Zodiac App and UI, go here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started)
 
-This guide shows how to setup the Reality module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://realit.io/) and can be used with [Snapshot](https://snapshot.org/).
+This guide shows how to setup the Reality module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://reality.eth.link/) and can be used with [Snapshot](https://snapshot.org/).
 
 The Reality Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools. If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates. For more information on the Reality Module (formerly SafeSnap) please refer to the original [Gnosis blog post](https://blog.gnosis.pm/ea67eb95c34f).
 
@@ -12,13 +12,13 @@ To start the process, you need to create a Gnosis Safe on the Rinkeby testnetwor
 
 For the hardhat tasks to work, the environment needs to be properly configured. See the [sample env file](../.env.sample) for more information.
 
-The guide will use the Rinkeby ETH Reality.eth V3 contract at [`0xDf33060F476F8cff7511F806C72719394da1Ad64`](https://rinkeby.etherscan.io/address/0xDf33060F476F8cff7511F806C72719394da1Ad64#code). Other network addresses can be found in the Truffle build folder on the [Reality.eth GitHub repo](https://github.com/RealityETH/monorepo/tree/main/packages/contracts/chains/deployments).
+The guide will use the Rinkeby ETH Reality.eth V3 contract at [`0xDf33060F476F8cff7511F806C72719394da1Ad64`](https://rinkeby.etherscan.io/address/0xDf33060F476F8cff7511F806C72719394da1Ad64#code). Other network addresses can be found in the [Reality.eth GitHub repo](https://github.com/RealityETH/monorepo/tree/main/packages/contracts/chains/deployments).
 
 DISCLAIMER: Check the deployed Reality.eth contracts before using them.
 
 ## Setup the Reality.eth template
 
-As part of the setup, you need to define or choose a template on Reality.eth. More information on how to format templates can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information).
+As part of the setup, you need to define or choose a template on Reality.eth. More information on how to format templates can be found in [their docs](https://reality.eth.link/app/docs/html/whitepaper.html#structuring-and-fetching-information).
 
 To define your own template, a hardhat task is provided in the repository. It is possible to provide a template to that task via `--template`. Otherwise, the [default template](../src/tasks/defaultTemplate.json) is used.
 
@@ -77,8 +77,8 @@ This task requires the following parameters:
 - `Owner`: Address that can call setter functions
 - `Avatar`: Address of the DAO (e.g a Gnosis Safe)
 - `Target`: Address on which the module will call `execModuleTransaction()`
-- `Oracle`: Address of the oracle (e.g RealitioV3 contract address)
-- `template`: the template to be used with RealitioV3
+- `Oracle`: Address of the oracle (e.g RealityETH contract address)
+- `template`: the template to be used with RealityETH
 - `iserc20` (Optional): If set to true, the module `RealityERC20` is going to be deployed, otherwise `RealityETH` is deployed (false by default)
 - `proxied` (Optional): Deploys the module through a proxy factory
 
