@@ -76,9 +76,9 @@ This task requires the following parameters:
 
 - `Owner`: Address that can call setter functions
 - `Avatar`: Address of the DAO (e.g a Gnosis Safe)
-- `Target`: Address on which the module will call `execModuleTransaction()`
+- `Target`: Address on which the module will call `execTransactionFromModule()` (e.g. the next Zodiac module in the chain or the Avatar address)
 - `Oracle`: Address of the oracle (e.g RealityETH contract address)
-- `template`: the template to be used with RealityETH
+- `template`: the template to be used with RealitioV3
 - `iserc20` (Optional): If set to true, the module `RealityERC20` is going to be deployed, otherwise `RealityETH` is deployed (false by default)
 - `proxied` (Optional): Deploys the module through a proxy factory
 
