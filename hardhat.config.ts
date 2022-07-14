@@ -68,6 +68,10 @@ export default {
     matic: {
       ...sharedNetworkConfig,
       url: "https://rpc-mainnet.maticvigil.com"
+    },
+    bsc: {
+      ...sharedNetworkConfig,
+      url: "https://bsc-dataseed.binance.org"
     }
   },
   namedAccounts: {
