@@ -1,6 +1,6 @@
-# Zodiac Reality Module Setup Guide
+# Setup Guide: Zodiac Reality Module
 
-This is a technical guide that uses command line tools, [to set up using the Zodiac App and UI, go here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started)
+This is a technical guide that uses command line tools, you can also set up the Reality module using the [Zodiac Safe App](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started).
 
 This guide shows how to setup the Reality module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://reality.eth.link/) and can be used with [Snapshot](https://snapshot.org/).
 
@@ -37,7 +37,7 @@ The template should have roughly the following format:
 - The title will also be displayed in the Reality.eth web interface and MUST include two `%s` placeholders.
   - The first placeholder is for the `id` of the proposal (e.g. an IPFS hash).
   - The second placeholder is the hash of the concatenation of the EIP-712 transaction hashes. See the [README](../README.md) for more information.
-- IMPORTANT: The template should be clearly in accordance with when and how to vote on your questions.
+- IMPORTANT: The template should be clearly define how to uniquely identify the given proposal and where to find it, so that the oracle can resolve accordingly.
   - An example can be found in [🍯DAO requirements](https://cloudflare-ipfs.com/ipfs/QmeJwtwdG4mPzC8sESrW7zqixZqdHDYnREz6ar9GCewgz7/).
 
 DISCLAIMER: DO NOT BLINDLY COPY THE REQUIREMENTS. You should check the requirements and make the adjustments for your setup.
@@ -53,7 +53,7 @@ You can also create your template using the [Reality.eth Template Builder UI](ht
 
 Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle. 
 
-The module has ten attributes:
+The module has ten variables that must be set:
 
 - `Owner`: Address that can call setter functions
 - `Avatar`: Address of the DAO (e.g a Gnosis Safe)
