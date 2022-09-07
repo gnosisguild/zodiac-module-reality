@@ -4,18 +4,17 @@ pragma solidity >=0.8.0;
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/RealitioV3.sol";
 import "./RealityModule.sol";
+import "@gnosis.pm/zodiac/contracts/factory/ModuleProxyFactory.sol";
 
 contract DeterministicDeploymentHelper {
   function createTemplateAndChangeOwner(
     string calldata templateContent,
-    address realityOracle,
-    address realityModuleInstance,
+    RealitioV3 realityOracle,
+    RealityModule realityModuleInstance,
     address newOwner
   ) public {
-    uint256 templateId = RealitioV3(realityOracle).createTemplate(
-      templateContent
-    );
-    RealityModule(realityModuleInstance).setTemplate(templateId);
-    RealityModule(realityModuleInstance).transferOwnership(newOwner);
+    uint256 templateId = realityOracle.createTemplate(templateContent);
+    realityModuleInstance.setTemplate(templateId);
+    realityModuleInstance.transferOwnership(newOwner);
   }
 }
