@@ -118,9 +118,9 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
 
     await deploymentHelper
       .createTemplateAndChangeOwner(
-        JSON.stringify(defaultTemplate),
-        oracle.address,
         newProxyAddress,
+        oracle.address,
+        JSON.stringify(defaultTemplate),
         safe.address
       )
       .then((tx: any) => tx.wait());
@@ -172,8 +172,8 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
         masterCopy.address,
         initParams,
         saltNonce,
-        JSON.stringify(defaultTemplate),
         oracle.address,
+        JSON.stringify(defaultTemplate),
         safe.address
       )
       .then((tx: any) => tx.wait());
