@@ -66,7 +66,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
     return { factory, masterCopy, mock, oracle };
   });
 
-  it("can be deterministically set up and configured with a custom template", async () => {
+  it("option 1: can be deterministically set up and configured with a custom template", async () => {
     const { factory, masterCopy, mock, oracle } = await baseSetup();
     const [safe] = await ethers.getSigners();
 
@@ -132,5 +132,65 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
 
     expect(await newProxyStep2.template()).to.be.eq(BigNumber.from(5));
     expect(await newProxyStep2.owner()).to.be.eq(safe.address);
+  });
+
+  it("option 2: can be deterministically set up and configured with a custom template", async () => {
+    const { factory, masterCopy, mock, oracle } = await baseSetup();
+    const [safe] = await ethers.getSigners();
+
+    const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
+      "DeterministicDeploymentHelper"
+    );
+
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
+
+    const paramsValues = [
+      deploymentHelper.address, // set the deterministic deployment helper to be the owner
+      safe.address,
+      safe.address,
+      oracle.address,
+      timeout,
+      cooldown,
+      expiration,
+      bond,
+      templateId,
+      oracle.address,
+    ];
+    const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
+    const initParams = masterCopy.interface.encodeFunctionData(
+      "setUp",
+      encodedParams
+    );
+    await mock.givenMethodReturnUint(
+      oracle.interface.getSighash("createTemplate"),
+      5
+    );
+
+    const receipt = await deploymentHelper
+      .deployWithTemplate(
+        factory.address,
+        masterCopy.address,
+        initParams,
+        saltNonce,
+        JSON.stringify(defaultTemplate),
+        oracle.address,
+        safe.address
+      )
+      .then((tx: any) => tx.wait());
+
+    // retrieve new address from event
+    const {
+      args: [newProxyAddress],
+    } = receipt.events.find(
+      ({ event }: { event: string }) => event === "ModuleProxyCreation"
+    );
+
+    const newProxyStep = await hre.ethers.getContractAt(
+      "RealityModuleETH",
+      newProxyAddress
+    );
+
+    expect(await newProxyStep.template()).to.be.eq(BigNumber.from(5));
+    expect(await newProxyStep.owner()).to.be.eq(safe.address);
   });
 });
