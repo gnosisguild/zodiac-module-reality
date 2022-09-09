@@ -6,14 +6,18 @@ import { BigNumber } from "ethers";
 
 const FIRST_ADDRESS = "0x0000000000000000000000000000000000000001";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const saltNonce = "0xfa";
-const defaultTemplate = {
+const ARBITRATOR = FIRST_ADDRESS;
+const SALT_NONCE = "0xfa";
+const DEFAULT_TEMPLATE = {
   title:
     "Did the Snapshot proposal with the id %s pass the execution of the array of Module transactions with the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions. If this question was asked before the Snapshot proposal was resolved it should ALWAYS be resolved to INVALID!",
   lang: "en",
   type: "bool",
   category: "DAO proposal",
 };
+let proxyAddress1: string;
+let proxyAddress2: string;
+let proxyAddress3: string;
 
 describe("Module can be deployed and configured via the DeterministicDeploymentHelper", () => {
   const timeout = 60;
@@ -66,7 +70,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
     return { factory, masterCopy, mock, oracle };
   });
 
-  it("option 1: can be deterministically set up and configured with a custom template", async () => {
+  it("option 1: can be deterministically deployed and set up, then configured with a custom template and new owner via `createTemplateAndChangeOwner`", async () => {
     const { factory, masterCopy, mock, oracle } = await baseSetup();
     const [safe] = await ethers.getSigners();
 
@@ -86,7 +90,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       expiration,
       bond,
       templateId,
-      oracle.address,
+      ARBITRATOR,
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
     const initParams = masterCopy.interface.encodeFunctionData(
@@ -94,7 +98,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       encodedParams
     );
     const receipt = await factory
-      .deployModule(masterCopy.address, initParams, saltNonce)
+      .deployModule(masterCopy.address, initParams, SALT_NONCE)
       .then((tx: any) => tx.wait());
 
     // retrieve new address from event
@@ -103,13 +107,14 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
     } = receipt.events.find(
       ({ event }: { event: string }) => event === "ModuleProxyCreation"
     );
+    proxyAddress1 = newProxyAddress;
 
-    const newProxyStep1 = await hre.ethers.getContractAt(
+    const newProxy = await hre.ethers.getContractAt(
       "RealityModuleETH",
       newProxyAddress
     );
-    expect(await newProxyStep1.template()).to.be.eq(BigNumber.from(0));
-    expect(await newProxyStep1.owner()).to.be.eq(deploymentHelper.address);
+    expect(await newProxy.template()).to.be.eq(BigNumber.from(0));
+    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
 
     await mock.givenMethodReturnUint(
       oracle.interface.getSighash("createTemplate"),
@@ -120,21 +125,24 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       .createTemplateAndChangeOwner(
         newProxyAddress,
         oracle.address,
-        JSON.stringify(defaultTemplate),
+        JSON.stringify(DEFAULT_TEMPLATE),
         safe.address
       )
       .then((tx: any) => tx.wait());
 
-    const newProxyStep2 = await hre.ethers.getContractAt(
-      "RealityModuleETH",
-      newProxyAddress
-    );
-
-    expect(await newProxyStep2.template()).to.be.eq(BigNumber.from(5));
-    expect(await newProxyStep2.owner()).to.be.eq(safe.address);
+    expect(await newProxy.avatar()).to.be.eq(safe.address);
+    expect(await newProxy.target()).to.be.eq(safe.address);
+    expect(await newProxy.oracle()).to.be.eq(oracle.address);
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
+    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
+    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
+    expect(await newProxy.owner()).to.be.eq(safe.address);
   });
 
-  it("option 2: can be deterministically set up and configured with a custom template", async () => {
+  it("option 2: can be deterministically set up and configured with a custom template via `deployWithEncodedParams`", async () => {
     const { factory, masterCopy, mock, oracle } = await baseSetup();
     const [safe] = await ethers.getSigners();
 
@@ -154,7 +162,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       expiration,
       bond,
       templateId,
-      oracle.address,
+      ARBITRATOR,
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
     const initParams = masterCopy.interface.encodeFunctionData(
@@ -167,13 +175,13 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
     );
 
     const receipt = await deploymentHelper
-      .deployWithTemplate(
+      .deployWithEncodedParams(
         factory.address,
         masterCopy.address,
         initParams,
-        saltNonce,
+        SALT_NONCE,
         oracle.address,
-        JSON.stringify(defaultTemplate),
+        JSON.stringify(DEFAULT_TEMPLATE),
         safe.address
       )
       .then((tx: any) => tx.wait());
@@ -185,12 +193,82 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       ({ event }: { event: string }) => event === "ModuleProxyCreation"
     );
 
-    const newProxyStep = await hre.ethers.getContractAt(
+    proxyAddress2 = newProxyAddress;
+
+    const newProxy = await hre.ethers.getContractAt(
       "RealityModuleETH",
       newProxyAddress
     );
 
-    expect(await newProxyStep.template()).to.be.eq(BigNumber.from(5));
-    expect(await newProxyStep.owner()).to.be.eq(safe.address);
+    expect(await newProxy.avatar()).to.be.eq(safe.address);
+    expect(await newProxy.target()).to.be.eq(safe.address);
+    expect(await newProxy.oracle()).to.be.eq(oracle.address);
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
+    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
+    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
+    expect(await newProxy.owner()).to.be.eq(safe.address);
+  });
+
+  it("option 3: can be deterministically set up and configured with a custom template via `deployWithTemplate`", async () => {
+    const { factory, masterCopy, mock, oracle } = await baseSetup();
+    const [safe] = await ethers.getSigners();
+
+    const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
+      "DeterministicDeploymentHelper"
+    );
+
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
+
+    await mock.givenMethodReturnUint(
+      oracle.interface.getSighash("createTemplate"),
+      5
+    );
+
+    const receipt = await deploymentHelper
+      .deployWithTemplate(factory.address, masterCopy.address, SALT_NONCE, {
+        realityOracle: oracle.address,
+        templateContent: JSON.stringify(DEFAULT_TEMPLATE),
+        owner: safe.address,
+        avatar: safe.address,
+        target: safe.address,
+        timeout: timeout,
+        cooldown: cooldown,
+        expiration: expiration,
+        bond: bond,
+        arbitrator: ARBITRATOR,
+      })
+      .then((tx: any) => tx.wait());
+
+    // retrieve new address from event
+    const {
+      args: [newProxyAddress],
+    } = receipt.events.find(
+      ({ event }: { event: string }) => event === "ModuleProxyCreation"
+    );
+
+    proxyAddress3 = newProxyAddress;
+
+    const newProxy = await hre.ethers.getContractAt(
+      "RealityModuleETH",
+      newProxyAddress
+    );
+    expect(await newProxy.avatar()).to.be.eq(safe.address);
+    expect(await newProxy.target()).to.be.eq(safe.address);
+    expect(await newProxy.oracle()).to.be.eq(oracle.address);
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
+    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
+    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
+    expect(await newProxy.owner()).to.be.eq(safe.address);
+  });
+
+  it("no matter what deployment function is used, the module proxy should end up at the same address", async () => {
+    expect(proxyAddress1).to.equal(proxyAddress2);
+    expect(proxyAddress1).to.equal(proxyAddress3);
   });
 });

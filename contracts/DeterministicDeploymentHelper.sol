@@ -45,8 +45,8 @@ contract DeterministicDeploymentHelper {
   /// @param realityOracle The address of the Reality.eth oracle instance to use
   /// @param templateContent The Reality.eth template
   /// @param finalModuleOwner The address that should be set as the Module owner
-  /// @return realityModuleProxy , rounded up for partial years
-  function deployWithTemplate(
+  /// @return realityModuleProxy The address of the new module proxy
+  function deployWithEncodedParams(
     ModuleProxyFactory factory,
     address masterCopy,
     bytes memory initParams, // function selector and parameters for the initializer
@@ -67,5 +67,56 @@ contract DeterministicDeploymentHelper {
       finalModuleOwner
     );
     emit ModuleProxyCreation(realityModuleProxy, masterCopy);
+  }
+
+  struct ModuleSetupParams {
+    RealitioV3 realityOracle;
+    string templateContent;
+    address owner;
+    address avatar;
+    address target;
+    uint32 timeout;
+    uint32 cooldown;
+    uint32 expiration;
+    uint256 bond;
+    address arbitrator;
+  }
+
+  /// @notice Deploys the Reality Module to a deterministic address, then creates the template and sets ownership to the specified owner
+  /// @param factory The Module Proxy Factory used for deploying modules
+  /// @param masterCopy The modules implementation logic, used for the Proxy (Module instance)
+  /// @param saltNonce The salt used in the creation of the proxy
+  /// @param setupParams The setup parameters (see the ModuleSetupParams struct for details)
+  /// @return realityModuleProxy The address of the new module proxy
+  function deployWithTemplate(
+    ModuleProxyFactory factory,
+    address masterCopy,
+    uint256 saltNonce,
+    ModuleSetupParams calldata setupParams
+  ) public returns (address realityModuleProxy) {
+    bytes memory initParams = abi.encodeWithSelector(
+      RealityModule(masterCopy).setUp.selector,
+      abi.encode(
+        address(this),
+        setupParams.avatar,
+        setupParams.target,
+        address(setupParams.realityOracle),
+        setupParams.timeout,
+        setupParams.cooldown,
+        setupParams.expiration,
+        setupParams.bond,
+        0,
+        setupParams.arbitrator
+      )
+    );
+    realityModuleProxy = deployWithEncodedParams(
+      factory,
+      masterCopy,
+      initParams,
+      saltNonce,
+      setupParams.realityOracle,
+      setupParams.templateContent,
+      setupParams.owner
+    );
   }
 }
