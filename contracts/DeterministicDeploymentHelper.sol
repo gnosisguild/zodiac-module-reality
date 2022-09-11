@@ -93,7 +93,7 @@ contract DeterministicDeploymentHelper {
     address masterCopy,
     uint256 saltNonce,
     ModuleSetupParams calldata setupParams
-  ) public returns (address realityModuleProxy) {
+  ) external returns (address realityModuleProxy) {
     bytes memory initParams = abi.encodeWithSelector(
       RealityModule(masterCopy).setUp.selector,
       abi.encode(
