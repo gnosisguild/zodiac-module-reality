@@ -24,7 +24,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
   const cooldown = 60;
   const expiration = 120;
   const bond = BigNumber.from(10000);
-  const templateId = BigNumber.from(0);
+  const defaultTemplateId = BigNumber.from(0);
 
   const paramsTypes = [
     "address",
@@ -70,6 +70,88 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
     return { factory, masterCopy, mock, oracle };
   });
 
+  it("option 0: can be deterministically deployed and set up, then configured with a custom template via `createTemplate`", async () => {
+    // in use this call should be done as a delegatecall from the module owner. Here we do a direct call for testing.
+
+    const { factory, masterCopy, mock, oracle } = await baseSetup();
+    const [safe] = await ethers.getSigners();
+
+    const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
+      "DeterministicDeploymentHelper"
+    );
+
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
+
+    const paramsValues = [
+      deploymentHelper.address, // set the deterministic deployment helper to be the owner. In production this will be the Safe.
+      safe.address,
+      safe.address,
+      oracle.address,
+      timeout,
+      cooldown,
+      expiration,
+      bond,
+      defaultTemplateId,
+      ARBITRATOR,
+    ];
+    const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
+    const initParams = masterCopy.interface.encodeFunctionData(
+      "setUp",
+      encodedParams
+    );
+    const receipt = await factory
+      .deployModule(masterCopy.address, initParams, SALT_NONCE)
+      .then((tx: any) => tx.wait());
+
+    // retrieve new address from event
+    const {
+      args: [newProxyAddress],
+    } = receipt.events.find(
+      ({ event }: { event: string }) => event === "ModuleProxyCreation"
+    );
+    proxyAddress1 = newProxyAddress;
+
+    const newProxy = await hre.ethers.getContractAt(
+      "RealityModuleETH",
+      newProxyAddress
+    );
+    expect(await newProxy.template()).to.be.eq(BigNumber.from(0));
+    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
+    expect(await newProxy.avatar()).to.be.eq(safe.address);
+    expect(await newProxy.target()).to.be.eq(safe.address);
+    expect(await newProxy.oracle()).to.be.eq(oracle.address);
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
+    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
+    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
+
+    await mock.givenMethodReturnUint(
+      oracle.interface.getSighash("createTemplate"),
+      5
+    );
+
+    await deploymentHelper
+      .createTemplate(
+        newProxyAddress,
+        oracle.address,
+        JSON.stringify(DEFAULT_TEMPLATE)
+      )
+      .then((tx: any) => tx.wait());
+
+    expect(await newProxy.avatar()).to.be.eq(safe.address);
+    expect(await newProxy.target()).to.be.eq(safe.address);
+    expect(await newProxy.oracle()).to.be.eq(oracle.address);
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
+    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
+    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
+    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
+  });
+
   it("option 1: can be deterministically deployed and set up, then configured with a custom template and new owner via `createTemplateAndChangeOwner`", async () => {
     const { factory, masterCopy, mock, oracle } = await baseSetup();
     const [safe] = await ethers.getSigners();
@@ -89,7 +171,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       cooldown,
       expiration,
       bond,
-      templateId,
+      defaultTemplateId,
       ARBITRATOR,
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
@@ -161,7 +243,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       cooldown,
       expiration,
       bond,
-      templateId,
+      defaultTemplateId,
       ARBITRATOR,
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];

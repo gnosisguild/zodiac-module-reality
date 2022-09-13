@@ -8,7 +8,7 @@ import "@gnosis.pm/zodiac/contracts/factory/ModuleProxyFactory.sol";
 
 /**
  * @title Deterministic Deployment Helper
- * @notice This contract contains helper functions that can be used to deploy the RealityModule to a deterministic address even though the template is new
+ * @notice This contract contains helper functions that can be used to deploy the RealityModule to a deterministic address even though the template is unknown.
  * @dev This is needed because if a new template is added in the same transaction, the template ID is unknown until the template is created.
  * This is unnecessary if the template ID is already known (the template has been created in an earlier transaction).
  * This functionality is helpful if the template will be created and the RealityModule deployed in the same transaction.
@@ -16,6 +16,22 @@ import "@gnosis.pm/zodiac/contracts/factory/ModuleProxyFactory.sol";
 contract DeterministicDeploymentHelper {
   event ModuleProxyCreation(address indexed proxy, address indexed masterCopy);
   event ModuleProxyConfigured(uint256 templateId);
+
+  /// @notice It creates the template on the oracle, then sets the template ID on the module.
+  /// @dev This function is meant to be called via a delegate call from the owner of the module (most often the Safe).
+  /// @param moduleInstance The module instance
+  /// @param realityOracle The address of the oracle instance to use
+  /// @param templateContent The Reality.eth template
+  /// @return templateId The templates ID at the reality oracle
+  function createTemplate(
+    RealityModule moduleInstance,
+    RealitioV3 realityOracle,
+    string calldata templateContent
+  ) public returns (uint256 templateId) {
+    templateId = realityOracle.createTemplate(templateContent);
+    moduleInstance.setTemplate(templateId);
+    emit ModuleProxyConfigured(templateId);
+  }
 
   /// @notice It creates the template on the oracle, then sets the template ID on the module and transfers ownership of the module to the specified owner
   /// @dev
