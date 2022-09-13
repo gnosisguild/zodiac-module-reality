@@ -15,7 +15,8 @@ import "@gnosis.pm/zodiac/contracts/factory/ModuleProxyFactory.sol";
  */
 contract DeterministicDeploymentHelper {
   event ModuleProxyCreation(address indexed proxy, address indexed masterCopy);
-  event ModuleProxyConfigured(uint256 templateId);
+  event ModuleProxyUpdateTemplate(uint256 templateId);
+  event ModuleProxyUpdateOwner(address newOwner);
 
   /// @notice It creates the template on the oracle, then sets the template ID on the module.
   /// @dev This function is meant to be called via a delegate call from the owner of the module (most often the Safe).
@@ -30,7 +31,7 @@ contract DeterministicDeploymentHelper {
   ) public returns (uint256 templateId) {
     templateId = realityOracle.createTemplate(templateContent);
     moduleInstance.setTemplate(templateId);
-    emit ModuleProxyConfigured(templateId);
+    emit ModuleProxyUpdateTemplate(templateId);
   }
 
   /// @notice It creates the template on the oracle, then sets the template ID on the module and transfers ownership of the module to the specified owner
@@ -46,10 +47,9 @@ contract DeterministicDeploymentHelper {
     string calldata templateContent,
     address newOwner
   ) public returns (uint256 templateId) {
-    templateId = realityOracle.createTemplate(templateContent);
-    moduleInstance.setTemplate(templateId);
+    templateId = createTemplate(moduleInstance, realityOracle, templateContent);
     moduleInstance.transferOwnership(newOwner);
-    emit ModuleProxyConfigured(templateId);
+    emit ModuleProxyUpdateOwner(newOwner);
   }
 
   /// @notice Deploys the Reality Module to a deterministic address, then creates the template and sets ownership to the specified owner
