@@ -15,6 +15,7 @@ const DEFAULT_TEMPLATE = {
   type: "bool",
   category: "DAO proposal",
 };
+let proxyAddress0: string;
 let proxyAddress1: string;
 let proxyAddress2: string;
 let proxyAddress3: string;
@@ -109,7 +110,7 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
     } = receipt.events.find(
       ({ event }: { event: string }) => event === "ModuleProxyCreation"
     );
-    proxyAddress1 = newProxyAddress;
+    proxyAddress0 = newProxyAddress;
 
     const newProxy = await hre.ethers.getContractAt(
       "RealityModuleETH",
@@ -350,7 +351,8 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
   });
 
   it("no matter what deployment function is used, the module proxy should end up at the same address", async () => {
-    expect(proxyAddress1).to.equal(proxyAddress2);
-    expect(proxyAddress1).to.equal(proxyAddress3);
+    expect(proxyAddress0).to.equal(proxyAddress1);
+    expect(proxyAddress0).to.equal(proxyAddress2);
+    expect(proxyAddress0).to.equal(proxyAddress3);
   });
 });
