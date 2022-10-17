@@ -5,6 +5,7 @@ import "hardhat-deploy";
 import dotenv from "dotenv";
 import type { HttpNetworkUserConfig } from "hardhat/types";
 import yargs from "yargs";
+import "./src/tasks/deployDeterministicDeploymentHelper";
 
 const argv = yargs
   .option("network", {
@@ -35,7 +36,7 @@ if (PK) {
 
 if (["rinkeby", "mainnet"].includes(argv.network) && INFURA_KEY === undefined) {
   throw new Error(
-    `Could not find Infura key in env, unable to connect to network ${argv.network}`,
+    `Could not find Infura key in env, unable to connect to network ${argv.network}`
   );
 }
 
@@ -47,10 +48,7 @@ export default {
     sources: "contracts",
   },
   solidity: {
-    compilers: [
-      { version: "0.8.0" },
-      { version: "0.6.12" },
-    ]
+    compilers: [{ version: "0.8.0" }, { version: "0.6.12" }],
   },
   networks: {
     mainnet: {
@@ -67,12 +65,12 @@ export default {
     },
     matic: {
       ...sharedNetworkConfig,
-      url: "https://rpc-mainnet.maticvigil.com"
+      url: "https://rpc-mainnet.maticvigil.com",
     },
     bsc: {
       ...sharedNetworkConfig,
-      url: "https://bsc-dataseed.binance.org"
-    }
+      url: "https://bsc-dataseed.binance.org",
+    },
   },
   namedAccounts: {
     deployer: 0,
