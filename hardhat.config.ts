@@ -71,6 +71,10 @@ export default {
       ...sharedNetworkConfig,
       url: "https://bsc-dataseed.binance.org",
     },
+    "truffle-dashboard": {
+      url: "http://localhost:24012/rpc",
+      timeout: 100000000,
+    },
   },
   namedAccounts: {
     deployer: 0,
