@@ -34,7 +34,7 @@ if (PK) {
   };
 }
 
-if (["rinkeby", "mainnet"].includes(argv.network) && INFURA_KEY === undefined) {
+if (["mainnet", "goerli"].includes(argv.network) && INFURA_KEY === undefined) {
   throw new Error(
     `Could not find Infura key in env, unable to connect to network ${argv.network}`
   );
@@ -55,9 +55,9 @@ export default {
       ...sharedNetworkConfig,
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
     },
-    rinkeby: {
+    goerli: {
       ...sharedNetworkConfig,
-      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
     },
     xdai: {
       ...sharedNetworkConfig,
