@@ -2,17 +2,17 @@
 
 This is a technical guide that uses command line tools, you can also set up the Reality module using the [Zodiac Safe App](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/get-started).
 
-This guide shows how to setup the Reality module with a Gnosis Safe on the Rinkeby testnetwork. It will use [Reality.eth](https://reality.eth.link/) and can be used with [Snapshot](https://snapshot.org/).
+This guide shows how to setup the Reality module with a Gnosis Safe on the Goerli testnetwork. It will use [Reality.eth](https://reality.eth.link/) and can be used with [Snapshot](https://snapshot.org/).
 
 The Reality Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools. If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates. For more information on the Reality Module (formerly SafeSnap) please refer to the original [Gnosis blog post](https://blog.gnosis.pm/ea67eb95c34f).
 
 ## Prerequisites
 
-To start the process, you need to create a Gnosis Safe on the Rinkeby testnetwork, for exampe on [https://rinkeby.gnosis-safe.io](https://rinkeby.gnosis-safe.io)). This Safe will represent the DAO and hold its assets, such as tokens and collectibles. A Safe transaction is required to set up the Reality Module.
+To start the process, you need to create a Gnosis Safe on the Goerli testnetwork, for exampe on [https://gnosis-safe.io/app/gor](https://gnosis-safe.io/app/gor)). This Safe will represent the DAO and hold its assets, such as tokens and collectibles. A Safe transaction is required to set up the Reality Module.
 
 For the hardhat tasks to work, the environment needs to be properly configured. See the [sample env file](../.env.sample) for more information.
 
-The guide will use the Rinkeby ETH Reality.eth V3 contract at [`0xDf33060F476F8cff7511F806C72719394da1Ad64`](https://rinkeby.etherscan.io/address/0xDf33060F476F8cff7511F806C72719394da1Ad64#code). Other network addresses can be found in the [Reality.eth GitHub repo](https://github.com/RealityETH/monorepo/tree/main/packages/contracts/chains/deployments).
+The guide will use the Goerli ETH Reality.eth V3 contract at [`0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f`](https://goerli.etherscan.io/address/0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f#code). Other network addresses can be found in the [Reality.eth GitHub repo](https://github.com/RealityETH/monorepo/tree/main/packages/contracts/chains/deployments).
 
 DISCLAIMER: Check the deployed Reality.eth contracts before using them.
 
@@ -23,12 +23,13 @@ As part of the setup, you need to define or choose a template on Reality.eth. Mo
 To define your own template, a hardhat task is provided in the repository. It is possible to provide a template to that task via `--template`. Otherwise, the [default template](../src/tasks/defaultTemplate.json) is used.
 
 The template should have roughly the following format:
+
 ```json
 {
-    "title": "Did the proposal with the id %s pass the execution of the transactions with hash 0x%s?",
-    "lang": "en",
-    "type": "bool",
-    "category": "DAO Proposal"
+  "title": "Did the proposal with the id %s pass the execution of the transactions with hash 0x%s?",
+  "lang": "en",
+  "type": "bool",
+  "category": "DAO Proposal"
 }
 ```
 
@@ -44,14 +45,14 @@ DISCLAIMER: DO NOT BLINDLY COPY THE REQUIREMENTS. You should check the requireme
 
 Using this template, you can run the task by using `yarn hardhat --network <network> createDaoTemplate --oracle <oracle address> --template <your template json>` and this should provide you with a template id.
 
-For example, on Rinkeby using the default template this would be:
-`yarn hardhat --network rinkeby createDaoTemplate ---oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64`
+For example, on Goerli using the default template this would be:
+`yarn hardhat --network goerli createDaoTemplate ---oracle 0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f --template '{ "title": "Did the proposal with the id %s pass the execution of the transactions with hash 0x%s?", "lang": "en", "type": "bool", "category": "DAO Proposal" }'`
 
 For this guide we will assume that the returned template id is `0x0000000000000000000000000000000000000000000000000000000000000dad`.
 
 You can also create your template using the [Reality.eth Template Builder UI](https://reality.eth.link/app/template-generator/). For more info on using it, [use this guide](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/add-template#template-builder).
 
-Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle. 
+Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle.
 
 The module has ten variables that must be set:
 
@@ -65,8 +66,6 @@ The module has ten variables that must be set:
 - `Bond`: Minimum bond that is required for an answer to be accepted
 - `Template ID`: ID of the template used for proposal questions (more information on how to format templates can be found in [their docs](https://github.com/realitio/realitio-dapp#structuring-and-fetching-information)
 - `Arbitrator`: The oracle's arbitrator (e.g. see Realitio's arbitrator [requirements](https://realitio.github.io/docs/html/arbitrators.html) and its arbitrators [list](https://github.com/realitio/realitio-contracts/blob/master/config/arbitrators.json)).
-
-
 
 Hardhat tasks can be used to deploy the Reality Module instance. There are two different ways to deploy the module, the first one is through a normal deployment, passing arguments to the constructor (without the `proxied` flag), or to deploy the module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) (with the `proxied` flag) to save on gas costs.
 
@@ -84,28 +83,29 @@ This task requires the following parameters:
 
 There are more optional parameters, for more information run `yarn hardhat setup --help`.
 
-An example for this on Rinkeby would be:
+An example for this on Goerli would be:
 
-`yarn hardhat --network rinkeby setup --owner <owner_address> --avatar <avatar_address> --target <target_address> --oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64 --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+`yarn hardhat --network goerli setup --owner <owner_address> --avatar <avatar_address> --target <target_address> --oracle 0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 Once the module has been deployed, you should verify the source code. (Note: It is likely that Etherscan will verify it automatically, but just in case, you should verify it yourself.) If you use a network that is Etherscan compatible, and you configure the `ETHERSCAN_API_KEY` in your environment, you can use the provided hardhat task to do this.
 
-An example of this on Rinkeby would be:
-`yarn hardhat --network rinkeby verifyEtherscan --module 0x4242424242424242424242424242424242424242 --owner <owner_address> --avatar <avatar_address> --target <target_address> --oracle 0xDf33060F476F8cff7511F806C72719394da1Ad64 --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
+An example of this on Goerli would be:
+`yarn hardhat --network goerli verifyEtherscan --module 0x4242424242424242424242424242424242424242 --owner <owner_address> --avatar <avatar_address> --target <target_address> --oracle 0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f --template 0x0000000000000000000000000000000000000000000000000000000000000dad`
 
 ### Enabling the module
 
-To allow the Reality Module to actually execute transactions, you must enable it on the Gnosis Safe to which it is connected. For this, it is possible to use the Zodiac app (enabling a custom module with the address of your newly deployed module above) or the Transaction Builder on https://rinkeby.gnosis-safe.io. For this you can follow our tutorial on [adding a module with the transaction builder](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
+To allow the Reality Module to actually execute transactions, you must enable it on the Gnosis Safe to which it is connected. For this, it is possible to use the Zodiac app (enabling a custom module with the address of your newly deployed module above) or the Transaction Builder on https://gnosis-safe.io. For this you can follow our tutorial on [adding a module with the transaction builder](https://help.gnosis-safe.io/en/articles/4934427-add-a-module).
 
 ## Snapshot integration
 
-To setup the newly deployed module on snapshot view our [Snapshot integration guide here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/integrate-snapshot). 
+To setup the newly deployed module on snapshot view our [Snapshot integration guide here.](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/integrate-snapshot).
 
 ## Monitoring your module
 
-Because anyone can submit proposals to your module, it is strongly recommended to put in place monitoring practices. The Reality Module relies on the oracle (e.g. Reality.eth) to provide the correct answer, so that no malicious transactions are executed. In the worst case, the avatar (e.g. the connected Gnosis Safe) can invalidate a submitted proposal. See the [README](../README.md) for more information on this. 
+Because anyone can submit proposals to your module, it is strongly recommended to put in place monitoring practices. The Reality Module relies on the oracle (e.g. Reality.eth) to provide the correct answer, so that no malicious transactions are executed. In the worst case, the avatar (e.g. the connected Gnosis Safe) can invalidate a submitted proposal. See the [README](../README.md) for more information on this.
 
 To make sure that all of the involved stakeholders can react in a timely manner, the events emitted by the module contract should be monitored. Each time a new proposal is submitted, the contract will emit a `ProposalQuestionCreated` event with the following parameters:
+
 ```
 event ProposalQuestionCreated(
     bytes32 indexed questionId, // e.g. Realityeth question id
@@ -119,7 +119,6 @@ There are different services available for monitoring such as the [OpenZepplin D
 
 If you have any questions about the Reality Module or the Zodiac collection of tools, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq).
 
-
-## Deploy a master copy 
+## Deploy a master copy
 
 The master copy contracts can be deployed through the `yarn deploy` command. Note that this only should be done if the Reality Module contracts are updated. The ones referred to on the [Zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) should be used.
