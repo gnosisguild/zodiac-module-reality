@@ -121,11 +121,6 @@ abstract contract RealityModule is Module {
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
-        require(timeout > 0, "Timeout has to be greater 0");
-        require(
-            expiration == 0 || expiration - cooldown >= 60,
-            "There need to be at least 60s between end of cooldown and expiration"
-        );
         setAvatar(_avatar);
         setTarget(_target);
         setOracle(_oracle);
@@ -155,6 +150,7 @@ abstract contract RealityModule is Module {
     /// @notice Timeout must be greater than `0`
     function setQuestionTimeout(uint32 timeout) public onlyOwner {
         require(timeout > 0, "Timeout has to be greater 0");
+        require(timeout < 365 days, "timeout must be less than 365 days"); 
         questionTimeout = timeout;
         emit SetQuestionTimeout(timeout);
     }
