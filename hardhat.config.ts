@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import type { HttpNetworkUserConfig } from "hardhat/types";
 import yargs from "yargs";
 import "./src/tasks/deployDeterministicDeploymentHelper";
+import "hardhat-contract-sizer";
 
 const argv = yargs
   .option("network", {
@@ -17,7 +18,8 @@ const argv = yargs
 
 // Load environment variables.
 dotenv.config();
-const { INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK } = process.env;
+const { INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK, ALCHEMY_KEY } =
+  process.env;
 
 import "./src/tasks/setup";
 import "./src/tasks/proposals";
@@ -59,13 +61,17 @@ export default {
       ...sharedNetworkConfig,
       url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
     },
+    arbitrum: {
+      ...sharedNetworkConfig,
+      url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    },
     xdai: {
       ...sharedNetworkConfig,
       url: "https://xdai.poanetwork.dev",
     },
     matic: {
       ...sharedNetworkConfig,
-      url: "https://rpc-mainnet.maticvigil.com",
+      url: "https://polygon-rpc.com",
     },
     bsc: {
       ...sharedNetworkConfig,

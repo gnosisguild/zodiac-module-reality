@@ -24,13 +24,20 @@ abstract contract RealityModule is Module {
         bytes32 indexed questionId,
         string indexed proposalId
     );
-
+    event ProposalExecuted(string proposalId, bytes32 txHash, uint256 txIndex);
     event RealityModuleSetup(
         address indexed initiator,
         address indexed owner,
         address indexed avatar,
         address target
     );
+    event OracleSet(RealitioV3 oracle);
+    event SetQuestionTimeout(uint32 questionTimeout);
+    event SetQuestionCooldown(uint32 questionCooldown);
+    event SetAnswerExpiration(uint32 answerExpiration);
+    event SetArbitrator(address indexed questionArbitrator);
+    event SetMinimumBond(uint256 minimumBond);
+    event SetTemplate(uint256 templateId);
 
     RealitioV3 public oracle;
     uint256 public template;
@@ -119,30 +126,42 @@ abstract contract RealityModule is Module {
             expiration == 0 || expiration - cooldown >= 60,
             "There need to be at least 60s between end of cooldown and expiration"
         );
-        avatar = _avatar;
-        target = _target;
-        oracle = _oracle;
-        answerExpiration = expiration;
-        questionTimeout = timeout;
-        questionCooldown = cooldown;
-        questionArbitrator = arbitrator;
-        minimumBond = bond;
-        template = templateId;
+        setAvatar(_avatar);
+        setTarget(_target);
+        setOracle(_oracle);
+        setAnswerExpiration(expiration);
+        setQuestionTimeout(timeout);
+        setQuestionCooldown(cooldown);
+        setArbitrator(arbitrator);
+        setMinimumBond(bond);
+        setTemplate(templateId);
 
         transferOwnership(_owner);
 
         emit RealityModuleSetup(msg.sender, _owner, avatar, target);
     }
 
-    /// @notice This can only be called by the owner
+    /// @dev Sets the `oracle` address
+    /// @param _oracle Address to be used as the oracle for this module
+    /// @notice This can only be called by the `owner`
+    function setOracle(RealitioV3 _oracle) public onlyOwner {
+        oracle = _oracle;
+        emit OracleSet(_oracle);
+    }
+
+    /// @dev Sets the question timeout
+    /// @param timeout Timeout, in seconds, between when an answer is set and when it is final
+    /// @notice This can only be called by the `owner`
+    /// @notice Timeout must be greater than `0`
     function setQuestionTimeout(uint32 timeout) public onlyOwner {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
+        emit SetQuestionTimeout(timeout);
     }
 
-    /// @dev Sets the cooldown before an answer is usable.
-    /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
-    /// @notice This can only be called by the owner
+    /// @dev Sets the cooldown before an answer is usable
+    /// @param cooldown Cooldown, in seconds, that should be required after a oracle provided answer
+    /// @notice This can only be called by the `owner`
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     function setQuestionCooldown(uint32 cooldown) public onlyOwner {
         uint32 expiration = answerExpiration;
@@ -151,47 +170,52 @@ abstract contract RealityModule is Module {
             "There need to be at least 60s between end of cooldown and expiration"
         );
         questionCooldown = cooldown;
+        emit SetQuestionCooldown(cooldown);
     }
 
-    /// @dev Sets the duration for which a positive answer is valid.
-    /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
+    /// @dev Sets the duration for which a positive answer is valid
+    /// @param expiration Duration that a positive answer of the oracle is valid, in seconds (or 0 if valid forever)
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    /// @notice This can only be called by the owner
+    /// @notice This can only be called by the `owner`
     function setAnswerExpiration(uint32 expiration) public onlyOwner {
         require(
             expiration == 0 || expiration - questionCooldown >= 60,
             "There need to be at least 60s between end of cooldown and expiration"
         );
         answerExpiration = expiration;
+        emit SetAnswerExpiration(expiration);
     }
 
-    /// @dev Sets the question arbitrator that will be used for future questions.
+    /// @dev Sets the question arbitrator that will be used for future questions
     /// @param arbitrator Address of the arbitrator
-    /// @notice This can only be called by the owner
+    /// @notice This can only be called by the `owner`
     function setArbitrator(address arbitrator) public onlyOwner {
         questionArbitrator = arbitrator;
+        emit SetArbitrator(arbitrator);
     }
 
-    /// @dev Sets the minimum bond that is required for an answer to be accepted.
+    /// @dev Sets the minimum bond that is required for an answer to be accepted
     /// @param bond Minimum bond that is required for an answer to be accepted
-    /// @notice This can only be called by the owner
+    /// @notice This can only be called by the `owner`
     function setMinimumBond(uint256 bond) public onlyOwner {
         minimumBond = bond;
+        emit SetMinimumBond(bond);
     }
 
-    /// @dev Sets the template that should be used for future questions.
+    /// @dev Sets the template that should be used for future questions
     /// @param templateId ID of the template that should be used for proposal questions
     /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
-    /// @notice This can only be called by the owner
+    /// @notice This can only be called by the `owner`
     function setTemplate(uint256 templateId) public onlyOwner {
         template = templateId;
+        emit SetTemplate(templateId);
     }
 
     /// @dev Function to add a proposal that should be considered for execution
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
-    /// @notice The nonce used for the question by this function is always 0
+    /// @notice The nonce used for the question by this function is always `0`
     function addProposal(string memory proposalId, bytes32[] memory txHashes)
         public
     {
@@ -296,7 +320,7 @@ abstract contract RealityModule is Module {
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
     /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
-    /// @notice The txIndex used by this function is always 0
+    /// @notice The txIndex used by this function is always `0`
     function executeProposal(
         string memory proposalId,
         bytes32[] memory txHashes,
@@ -394,6 +418,7 @@ abstract contract RealityModule is Module {
         executedProposalTransactions[questionHash][txHash] = true;
         // Execute the transaction via the target.
         require(exec(to, value, data, operation), "Module transaction failed");
+        emit ProposalExecuted(proposalId, txHash, txIndex);
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes
