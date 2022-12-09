@@ -107,42 +107,6 @@ describe("RealityModuleETH", async () => {
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 
-    it("throws if avatar is zero address", async () => {
-      const Module = await hre.ethers.getContractFactory("RealityModuleETH");
-      await expect(
-        Module.deploy(
-          user1.address,
-          ZERO_ADDRESS,
-          user1.address,
-          user1.address,
-          42,
-          23,
-          0,
-          0,
-          1337,
-          user1.address
-        )
-      ).to.be.revertedWith("Avatar can not be zero address");
-    });
-
-    it("throws if target is zero address", async () => {
-      const Module = await hre.ethers.getContractFactory("RealityModuleETH");
-      await expect(
-        Module.deploy(
-          user1.address,
-          user1.address,
-          ZERO_ADDRESS,
-          user1.address,
-          42,
-          23,
-          0,
-          0,
-          1337,
-          user1.address
-        )
-      ).to.be.revertedWith("Target can not be zero address");
-    });
-
     it("throws if timeout is 0", async () => {
       const Module = await hre.ethers.getContractFactory("RealityModuleETH");
       await expect(
@@ -158,7 +122,7 @@ describe("RealityModuleETH", async () => {
           1,
           user1.address
         )
-      ).to.be.revertedWith("Timeout has to be greater 0");
+      ).to.be.revertedWith("InvalidTimeout()");
     });
 
     it("throws if not enough time between cooldown and expiration", async () => {
@@ -176,9 +140,7 @@ describe("RealityModuleETH", async () => {
           0,
           user1.address
         )
-      ).to.be.revertedWith(
-        "There need to be at least 60s between end of cooldown and expiration"
-      );
+      ).to.be.revertedWith("InvalidTimeout()");
     });
 
     it("answer expiration can be 0", async () => {
@@ -232,9 +194,7 @@ describe("RealityModuleETH", async () => {
         "setQuestionTimeout",
         [0]
       );
-      await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
-        "Timeout has to be greater 0"
-      );
+      await expect(avatar.exec(module.address, 0, calldata)).to.be.reverted;
     });
 
     it("updates question timeout", async () => {
@@ -273,11 +233,8 @@ describe("RealityModuleETH", async () => {
         "setQuestionCooldown",
         [41]
       );
-      await expect(
-        avatar.exec(module.address, 0, setQuestionCooldownInvalid)
-      ).to.be.revertedWith(
-        "There need to be at least 60s between end of cooldown and expiration"
-      );
+      await expect(avatar.exec(module.address, 0, setQuestionCooldownInvalid))
+        .to.be.reverted;
 
       const setQuestionCooldown = module.interface.encodeFunctionData(
         "setQuestionCooldown",
@@ -350,11 +307,8 @@ describe("RealityModuleETH", async () => {
         "setAnswerExpiration",
         [99]
       );
-      await expect(
-        avatar.exec(module.address, 0, setAnswerExpirationInvalid)
-      ).to.be.revertedWith(
-        "There need to be at least 60s between end of cooldown and expiration"
-      );
+      await expect(avatar.exec(module.address, 0, setAnswerExpirationInvalid))
+        .to.be.reverted;
 
       const setAnswerExpiration = module.interface.encodeFunctionData(
         "setAnswerExpiration",
@@ -617,7 +571,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.markProposalWithExpiredAnswerAsInvalid(questionHash)
-      ).to.be.revertedWith("Answers are valid forever");
+      ).to.be.revertedWith("NoExpiration()");
     });
 
     it("throws if answer is already invalidated", async () => {
@@ -657,7 +611,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.markProposalWithExpiredAnswerAsInvalid(questionHash)
-      ).to.be.revertedWith("Proposal is already invalidated");
+      ).to.be.revertedWith("AlreadyInvalidated()");
     });
 
     it("throws if question is unknown", async () => {
@@ -681,7 +635,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.markProposalWithExpiredAnswerAsInvalid(questionHash)
-      ).to.be.revertedWith("No question id set for provided proposal");
+      ).to.be.revertedWith("NoQuestionIdSet()");
     });
 
     it("throws if answer was not accepted", async () => {
@@ -727,7 +681,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.markProposalWithExpiredAnswerAsInvalid(questionHash)
-      ).to.be.revertedWith("Only positive answers can expire");
+      ).to.be.revertedWith("OnlyPositiveAnswersExpire()");
     });
 
     it("throws if answer is not expired", async () => {
@@ -777,7 +731,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.markProposalWithExpiredAnswerAsInvalid(questionHash)
-      ).to.be.revertedWith("Answer has not expired yet");
+      ).to.be.revertedWith("AnswerNotExpired()");
     });
 
     it("can mark proposal with expired accepted answer as invalid", async () => {
@@ -908,7 +862,7 @@ describe("RealityModuleETH", async () => {
   });
 
   describe("addProposal", async () => {
-    it("throws if unexpected question id is returned", async () => {
+    it("throws if UnexpectedQuestionId() is returned", async () => {
       const { module, mock, oracle } = await setupTestWithTestAvatar();
       await mock.givenMethodReturnUint(
         oracle.interface.getSighash("askQuestionWithMinBond"),
@@ -920,7 +874,7 @@ describe("RealityModuleETH", async () => {
         ["some_tx_data"]
       );
       await expect(module.addProposal(id, [txHash])).to.be.revertedWith(
-        "Unexpected question id"
+        "UnexpectedQuestionId()"
       );
     });
 
@@ -946,7 +900,7 @@ describe("RealityModuleETH", async () => {
       await avatar.exec(module.address, 0, markInvalid);
 
       await expect(module.addProposal(id, [txHash])).to.be.revertedWith(
-        "Proposal has already been submitted"
+        "ProposalAlreadySubmitted()"
       );
     });
 
@@ -968,7 +922,7 @@ describe("RealityModuleETH", async () => {
       await module.addProposal(id, [txHash]);
 
       await expect(module.addProposal(id, [txHash])).to.be.revertedWith(
-        "Proposal has already been submitted"
+        "ProposalAlreadySubmitted()"
       );
     });
 
@@ -996,7 +950,7 @@ describe("RealityModuleETH", async () => {
       await avatar.exec(module.address, 0, updateQuestionTimeout);
 
       await expect(module.addProposal(id, [txHash])).to.be.revertedWith(
-        "Proposal has already been submitted"
+        "ProposalAlreadySubmitted()"
       );
     });
 
@@ -1106,7 +1060,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.addProposalWithNonce(id, [txHash], 1)
-      ).to.be.revertedWith("Previous proposal was not invalidated");
+      ).to.be.revertedWith("ValidPreviousProposal()");
     });
 
     it("calls askQuestionWithMinBond with correct data", async () => {
@@ -1330,7 +1284,7 @@ describe("RealityModuleETH", async () => {
       );
       await expect(
         module.addProposalWithNonce(...proposalParameters, 1)
-      ).to.be.revertedWith("This proposal has been marked as invalid");
+      ).to.be.revertedWith("InvalidProposal()");
     });
 
     it("cannot ask again if follop up was not invalidated", async () => {
@@ -1376,7 +1330,7 @@ describe("RealityModuleETH", async () => {
 
       await expect(
         module.addProposalWithNonce(id, [txHash], 1337)
-      ).to.be.revertedWith("Previous proposal was not invalidated");
+      ).to.be.revertedWith("ValidPreviousProposal()");
     });
   });
 
@@ -1409,7 +1363,7 @@ describe("RealityModuleETH", async () => {
           tx.data,
           tx.operation
         )
-      ).to.be.revertedWith("No question id set for provided proposal");
+      ).to.be.reverted;
     });
 
     it("throws if proposal has been invalidated", async () => {
@@ -1599,7 +1553,7 @@ describe("RealityModuleETH", async () => {
           tx.data,
           tx.operation
         )
-      ).to.be.revertedWith("No question id set for provided proposal");
+      ).to.be.reverted;
     });
 
     it("throws if tx was not approved", async () => {

@@ -20,6 +20,12 @@ abstract contract RealityModule is Module {
     //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
     // );
 
+    event RealityModuleSetup(
+        address indexed initiator,
+        address indexed owner,
+        address indexed avatar,
+        address target
+    );
     event ProposalQuestionCreated(
         bytes32 indexed questionId,
         string indexed indexedProposalId,
@@ -27,12 +33,7 @@ abstract contract RealityModule is Module {
     );
     event ProposalExecuted(string indexed indexedProposalId, string proposalId, bytes32 txHash, uint256 txIndex);
     event ProposalMarkedAsInvalid(bytes32 indexed questionHash);
-    event RealityModuleSetup(
-        address indexed initiator,
-        address indexed owner,
-        address indexed avatar,
-        address target
-    );
+    event ExpiredProposalMarkedAsInvalid(bytes32 indexed questionsHash);
     event OracleSet(RealitioV3 indexed oracle);
     event SetQuestionTimeout(uint32 questionTimeout);
     event SetQuestionCooldown(uint32 questionCooldown);
@@ -41,6 +42,31 @@ abstract contract RealityModule is Module {
     event SetMinimumBond(uint256 minimumBond);
     event SetTemplate(uint256 indexed templateId);
 
+    /// @notice Timeout must be greater than 0 and less than 365 days. Denominated in seconds.
+    error InvalidTimeout();
+    /// @notice There must be at least 60s between end of cooldown and expiration.
+    error InvalidCooldown();
+    /// @notice There must be at least 60s between end of cooldown and expiration.
+    error InvalidExpiration();
+    /// @notice This proposal has been marked as invalid.
+    error InvalidProposal();
+    /// @notice Previous proposal was not invalidated.
+    error ValidPreviousProposal();
+    /// @notice Proposal has already been submitted.
+    error ProposalAlreadySubmitted();
+    /// @notice Unexpected question id.
+    error UnexpectedQuestionId();
+    /// @notice Answers are valid forever.
+    error NoExpiration();
+    /// @notice Proposal is already invalidated.
+    error AlreadyInvalidated();
+    /// @notice No question id set for provided proposal.
+    error NoQuestionIdSet();
+    /// @notice Only positive answers can expire.
+    error OnlyPositiveAnswersExpire();
+    /// @notice Answer has not expired yet.
+    error AnswerNotExpired();
+    
     RealitioV3 public oracle;
     uint256 public template;
     uint32 public questionTimeout;
@@ -121,8 +147,6 @@ abstract contract RealityModule is Module {
                 )
             );
         __Ownable_init();
-        require(_avatar != address(0), "Avatar can not be zero address");
-        require(_target != address(0), "Target can not be zero address");
         setAvatar(_avatar);
         setTarget(_target);
         setOracle(_oracle);
@@ -151,8 +175,7 @@ abstract contract RealityModule is Module {
     /// @notice This can only be called by the `owner`
     /// @notice Timeout must be greater than `0`
     function setQuestionTimeout(uint32 timeout) public onlyOwner {
-        require(timeout > 0, "Timeout has to be greater 0");
-        require(timeout < 365 days, "timeout must be less than 365 days"); 
+        if (timeout == 0 || timeout >= 365 days) revert InvalidTimeout();
         questionTimeout = timeout;
         emit SetQuestionTimeout(timeout);
     }
@@ -163,10 +186,7 @@ abstract contract RealityModule is Module {
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     function setQuestionCooldown(uint32 cooldown) public onlyOwner {
         uint32 expiration = answerExpiration;
-        require(
-            expiration == 0 || expiration - cooldown >= 60,
-            "There need to be at least 60s between end of cooldown and expiration"
-        );
+        if (expiration != 0 && expiration - cooldown < 60) revert InvalidCooldown();
         questionCooldown = cooldown;
         emit SetQuestionCooldown(cooldown);
     }
@@ -177,10 +197,7 @@ abstract contract RealityModule is Module {
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     /// @notice This can only be called by the `owner`
     function setAnswerExpiration(uint32 expiration) public onlyOwner {
-        require(
-            expiration == 0 || expiration - questionCooldown >= 60,
-            "There need to be at least 60s between end of cooldown and expiration"
-        );
+        if (expiration != 0 && expiration - questionCooldown < 60) revert InvalidTimeout();
         answerExpiration = expiration;
         emit SetAnswerExpiration(expiration);
     }
@@ -236,25 +253,16 @@ abstract contract RealityModule is Module {
             // Previous nonce must have been invalidated by the oracle.
             // However, if the proposal was internally invalidated, it should not be possible to ask it again.
             bytes32 currentQuestionId = questionIds[questionHash];
-            require(
-                currentQuestionId != INVALIDATED,
-                "This proposal has been marked as invalid"
-            );
-            require(
-                oracle.resultFor(currentQuestionId) == INVALIDATED,
-                "Previous proposal was not invalidated"
-            );
+            if (currentQuestionId == INVALIDATED) revert InvalidProposal();
+            if (oracle.resultFor(currentQuestionId) != INVALIDATED) revert ValidPreviousProposal();
         } else {
-            require(
-                questionIds[questionHash] == bytes32(0),
-                "Proposal has already been submitted"
-            );
+            if (questionIds[questionHash] != bytes32(0)) revert ProposalAlreadySubmitted();
         }
         bytes32 expectedQuestionId = getQuestionId(question, nonce);
         // Set the question hash for this question id
         questionIds[questionHash] = expectedQuestionId;
         bytes32 questionId = askQuestion(question, nonce);
-        require(expectedQuestionId == questionId, "Unexpected question id");
+        if (expectedQuestionId != questionId) revert UnexpectedQuestionId();
         emit ProposalQuestionCreated(questionId, proposalId, proposalId);
     }
 
@@ -293,23 +301,15 @@ abstract contract RealityModule is Module {
         public
     {
         uint32 expirationDuration = answerExpiration;
-        require(expirationDuration > 0, "Answers are valid forever");
+        if (expirationDuration == 0) revert NoExpiration();
         bytes32 questionId = questionIds[questionHash];
-        require(questionId != INVALIDATED, "Proposal is already invalidated");
-        require(
-            questionId != bytes32(0),
-            "No question id set for provided proposal"
-        );
-        require(
-            oracle.resultFor(questionId) == bytes32(uint256(1)),
-            "Only positive answers can expire"
-        );
+        if (questionId == INVALIDATED) revert AlreadyInvalidated();
+        if (questionId == bytes32(0)) revert NoQuestionIdSet();
+        if (oracle.resultFor(questionId) != bytes32(uint256(1))) revert OnlyPositiveAnswersExpire();
         uint32 finalizeTs = oracle.getFinalizeTS(questionId);
-        require(
-            finalizeTs + uint256(expirationDuration) < block.timestamp,
-            "Answer has not expired yet"
-        );
+        if (finalizeTs + uint256(expirationDuration) >= block.timestamp) revert AnswerNotExpired();
         questionIds[questionHash] = INVALIDATED;
+        emit ExpiredProposalMarkedAsInvalid(questionHash);
     }
 
     /// @dev Executes the transactions of a proposal via the target if accepted
