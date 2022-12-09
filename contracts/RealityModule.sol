@@ -22,22 +22,24 @@ abstract contract RealityModule is Module {
 
     event ProposalQuestionCreated(
         bytes32 indexed questionId,
-        string indexed proposalId
+        string indexed indexedProposalId,
+        string proposalId
     );
-    event ProposalExecuted(string proposalId, bytes32 txHash, uint256 txIndex);
+    event ProposalExecuted(string indexed indexedProposalId, string proposalId, bytes32 txHash, uint256 txIndex);
+    event ProposalMarkedAsInvalid(bytes32 indexed questionHash);
     event RealityModuleSetup(
         address indexed initiator,
         address indexed owner,
         address indexed avatar,
         address target
     );
-    event OracleSet(RealitioV3 oracle);
+    event OracleSet(RealitioV3 indexed oracle);
     event SetQuestionTimeout(uint32 questionTimeout);
     event SetQuestionCooldown(uint32 questionCooldown);
     event SetAnswerExpiration(uint32 answerExpiration);
     event SetArbitrator(address indexed questionArbitrator);
     event SetMinimumBond(uint256 minimumBond);
-    event SetTemplate(uint256 templateId);
+    event SetTemplate(uint256 indexed templateId);
 
     RealitioV3 public oracle;
     uint256 public template;
@@ -253,7 +255,7 @@ abstract contract RealityModule is Module {
         questionIds[questionHash] = expectedQuestionId;
         bytes32 questionId = askQuestion(question, nonce);
         require(expectedQuestionId == questionId, "Unexpected question id");
-        emit ProposalQuestionCreated(questionId, proposalId);
+        emit ProposalQuestionCreated(questionId, proposalId, proposalId);
     }
 
     function askQuestion(string memory question, uint256 nonce)
@@ -282,6 +284,7 @@ abstract contract RealityModule is Module {
         onlyOwner
     {
         questionIds[questionHash] = INVALIDATED;
+        emit ProposalMarkedAsInvalid(questionHash);
     }
 
     /// @dev Marks a proposal with an expired answer as invalid, preventing execution of the connected transactions
@@ -414,7 +417,7 @@ abstract contract RealityModule is Module {
         executedProposalTransactions[questionHash][txHash] = true;
         // Execute the transaction via the target.
         require(exec(to, value, data, operation), "Module transaction failed");
-        emit ProposalExecuted(proposalId, txHash, txIndex);
+        emit ProposalExecuted(proposalId, proposalId, txHash, txIndex);
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes
