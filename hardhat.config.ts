@@ -71,6 +71,10 @@ export default {
       ...sharedNetworkConfig,
       url: "https://bsc-dataseed.binance.org",
     },
+    sepolia: {
+      ...sharedNetworkConfig,
+      url: "https://ethereum-sepolia-rpc.publicnode.com",
+    },
     "truffle-dashboard": {
       url: "http://localhost:24012/rpc",
       timeout: 100000000,
@@ -84,5 +88,15 @@ export default {
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
+    customChains: [
+      {
+        network: "sepolia",
+        chainId: 11155111,
+        urls: {
+          apiURL: "https://api-sepolia.etherscan.io/api",
+          browserURL: "https://sepolia.etherscan.io",
+        },
+      },
+    ],
   },
 };
