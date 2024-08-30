@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "@gnosis.pm/zodiac/contracts/core/Module.sol";
+import "@gnosis-guild/zodiac-core/contracts/core/Module.sol";
 import "./interfaces/RealitioV3.sol";
 import "./RealityModule.sol";
-import "@gnosis.pm/zodiac/contracts/factory/ModuleProxyFactory.sol";
+import "@gnosis-guild/zodiac-core/contracts/factory/ModuleProxyFactory.sol";
 
 /**
  * @title Deterministic Deployment Helper

@@ -1,12 +1,14 @@
-import "@nomiclabs/hardhat-etherscan";
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-verify";
+import "hardhat-gas-reporter";
 import "solidity-coverage";
-import "hardhat-deploy";
 import dotenv from "dotenv";
 import type { HttpNetworkUserConfig } from "hardhat/types";
 import yargs from "yargs";
-import "./src/tasks/deployDeterministicDeploymentHelper";
 import "hardhat-contract-sizer";
+
+
+
 
 const argv = yargs
   .option("network", {
@@ -20,9 +22,10 @@ const argv = yargs
 dotenv.config();
 const { INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK, ALCHEMY_KEY } =
   process.env;
-
-import "./src/tasks/setup";
-import "./src/tasks/proposals";
+  
+//   import "./src/tasks/deployDeterministicDeploymentHelper";
+// import "./src/tasks/setup";
+// import "./src/tasks/proposals";
 
 const DEFAULT_MNEMONIC =
   "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
@@ -36,7 +39,7 @@ if (PK) {
   };
 }
 
-if (["mainnet", "goerli"].includes(argv.network) && INFURA_KEY === undefined) {
+if (["mainnet", "sepolia"].includes(argv.network) && INFURA_KEY === undefined) {
   throw new Error(
     `Could not find Infura key in env, unable to connect to network ${argv.network}`
   );
@@ -57,9 +60,9 @@ export default {
       ...sharedNetworkConfig,
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
     },
-    goerli: {
+    sepolia: {
       ...sharedNetworkConfig,
-      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
+      url: `https://sepolia.infura.io/v3/${INFURA_KEY}`,
     },
     arbitrum: {
       ...sharedNetworkConfig,

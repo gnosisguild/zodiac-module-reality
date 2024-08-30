@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "@gnosis.pm/zodiac/contracts/core/Module.sol";
+import "@gnosis-guild/zodiac-core/contracts/core/Module.sol";
 import "./interfaces/RealitioV3.sol";
 
 abstract contract RealityModule is Module {
