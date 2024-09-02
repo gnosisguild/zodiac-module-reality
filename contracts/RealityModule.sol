@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: LGPL-3.0-only
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.20;
 
 import "@gnosis-guild/zodiac-core/contracts/core/Module.sol";
 import "./interfaces/RealitioV3.sol";
@@ -91,7 +90,7 @@ abstract contract RealityModule is Module {
         setUp(initParams);
     }
 
-    function setUp(bytes memory initParams) public override {
+    function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
             address _avatar,
@@ -118,7 +117,7 @@ abstract contract RealityModule is Module {
                     address
                 )
             );
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         setAvatar(_avatar);
@@ -150,7 +149,7 @@ abstract contract RealityModule is Module {
     /// @notice Timeout must be greater than `0`
     function setQuestionTimeout(uint32 timeout) public onlyOwner {
         require(timeout > 0, "Timeout has to be greater 0");
-        require(timeout < 365 days, "timeout must be less than 365 days"); 
+        require(timeout < 365 days, "timeout must be less than 365 days");
         questionTimeout = timeout;
         emit SetQuestionTimeout(timeout);
     }
@@ -212,9 +211,10 @@ abstract contract RealityModule is Module {
     /// @param proposalId Id that should identify the proposal uniquely
     /// @param txHashes EIP-712 hashes of the transactions that should be executed
     /// @notice The nonce used for the question by this function is always `0`
-    function addProposal(string memory proposalId, bytes32[] memory txHashes)
-        public
-    {
+    function addProposal(
+        string memory proposalId,
+        bytes32[] memory txHashes
+    ) public {
         addProposalWithNonce(proposalId, txHashes, 0);
     }
 
@@ -256,10 +256,10 @@ abstract contract RealityModule is Module {
         emit ProposalQuestionCreated(questionId, proposalId);
     }
 
-    function askQuestion(string memory question, uint256 nonce)
-        internal
-        virtual
-        returns (bytes32);
+    function askQuestion(
+        string memory question,
+        uint256 nonce
+    ) internal virtual returns (bytes32);
 
     /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
     /// @param proposalId Id that should identify the proposal uniquely
@@ -277,18 +277,17 @@ abstract contract RealityModule is Module {
     /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
     /// @notice This can only be called by the owner
-    function markProposalAsInvalidByHash(bytes32 questionHash)
-        public
-        onlyOwner
-    {
+    function markProposalAsInvalidByHash(
+        bytes32 questionHash
+    ) public onlyOwner {
         questionIds[questionHash] = INVALIDATED;
     }
 
     /// @dev Marks a proposal with an expired answer as invalid, preventing execution of the connected transactions
     /// @param questionHash Question hash calculated based on the proposal id and txHashes
-    function markProposalWithExpiredAnswerAsInvalid(bytes32 questionHash)
-        public
-    {
+    function markProposalWithExpiredAnswerAsInvalid(
+        bytes32 questionHash
+    ) public {
         uint32 expirationDuration = answerExpiration;
         require(expirationDuration > 0, "Answers are valid forever");
         bytes32 questionId = questionIds[questionHash];
@@ -420,11 +419,10 @@ abstract contract RealityModule is Module {
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes
     /// @param proposalId Id of the proposal that proposes to execute the transactions represented by the txHashes
     /// @param txHashes EIP-712 Hashes of the transactions that should be executed
-    function buildQuestion(string memory proposalId, bytes32[] memory txHashes)
-        public
-        pure
-        returns (string memory)
-    {
+    function buildQuestion(
+        string memory proposalId,
+        bytes32[] memory txHashes
+    ) public pure returns (string memory) {
         string memory txsHash = bytes32ToAsciiString(
             keccak256(abi.encodePacked(txHashes))
         );
@@ -433,11 +431,10 @@ abstract contract RealityModule is Module {
 
     /// @dev Generate the question id.
     /// @notice It is required that this is the same as for the oracle implementation used.
-    function getQuestionId(string memory question, uint256 nonce)
-        public
-        view
-        returns (bytes32)
-    {
+    function getQuestionId(
+        string memory question,
+        uint256 nonce
+    ) public view returns (bytes32) {
         // Ask the question with a starting time of 0, so that it can be immediately answered
         bytes32 contentHash = keccak256(
             abi.encodePacked(template, uint32(0), question)
@@ -510,11 +507,9 @@ abstract contract RealityModule is Module {
             );
     }
 
-    function bytes32ToAsciiString(bytes32 _bytes)
-        internal
-        pure
-        returns (string memory)
-    {
+    function bytes32ToAsciiString(
+        bytes32 _bytes
+    ) internal pure returns (string memory) {
         bytes memory s = new bytes(64);
         for (uint256 i = 0; i < 32; i++) {
             uint8 b = uint8(bytes1(_bytes << (i * 8)));
