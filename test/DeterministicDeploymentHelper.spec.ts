@@ -1,52 +1,58 @@
-import { expect } from "chai";
-import hre, { deployments, ethers } from "hardhat";
-import "@nomiclabs/hardhat-ethers";
-import { AbiCoder } from "ethers/lib/utils";
-import { BigNumber } from "ethers";
+import { expect } from 'chai'
+import hre, { ethers } from 'hardhat'
+import '@nomicfoundation/hardhat-ethers'
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import createAdapter from './createEIP1193'
+import { deployFactories, deployProxy } from '@gnosis-guild/zodiac-core'
+import { AbiCoder } from 'ethers'
 
-const FIRST_ADDRESS = "0x0000000000000000000000000000000000000001";
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const ARBITRATOR = FIRST_ADDRESS;
-const SALT_NONCE = "0xfa";
+const FIRST_ADDRESS = '0x0000000000000000000000000000000000000001'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const ARBITRATOR = FIRST_ADDRESS
+const SALT_NONCE = '0xfa'
 const DEFAULT_TEMPLATE = {
   title:
-    "Did the Snapshot proposal with the id %s pass the execution of the array of Module transactions with the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions. If this question was asked before the Snapshot proposal was resolved it should ALWAYS be resolved to INVALID!",
-  lang: "en",
-  type: "bool",
-  category: "DAO proposal",
-};
-let proxyAddress0: string;
-let proxyAddress1: string;
-let proxyAddress2: string;
-let proxyAddress3: string;
+    'Did the Snapshot proposal with the id %s pass the execution of the array of Module transactions with the hash 0x%s? The hash is the keccak of the concatenation of the individual EIP-712 hashes of the Module transactions. If this question was asked before the Snapshot proposal was resolved it should ALWAYS be resolved to INVALID!',
+  lang: 'en',
+  type: 'bool',
+  category: 'DAO proposal',
+}
+let proxyAddress0: string
+let proxyAddress1: string
+let proxyAddress2: string
+let proxyAddress3: string
 
-describe("Module can be deployed and configured via the DeterministicDeploymentHelper", () => {
-  const timeout = 60;
-  const cooldown = 60;
-  const expiration = 120;
-  const bond = BigNumber.from(10000);
-  const defaultTemplateId = BigNumber.from(0);
+describe('Module can be deployed and configured via the DeterministicDeploymentHelper', () => {
+  const timeout = 61
+  const cooldown = 60
+  const expiration = 120
+  const bond = BigInt(10000)
+  const defaultTemplateId = BigInt(0)
 
   const paramsTypes = [
-    "address",
-    "address",
-    "address",
-    "address",
-    "uint32",
-    "uint32",
-    "uint32",
-    "uint256",
-    "uint256",
-    "address",
-  ];
+    'address',
+    'address',
+    'address',
+    'address',
+    'uint32',
+    'uint32',
+    'uint32',
+    'uint256',
+    'uint256',
+    'address',
+  ]
 
-  const baseSetup = deployments.createFixture(async () => {
-    await deployments.fixture();
-    const Factory = await hre.ethers.getContractFactory("ModuleProxyFactory");
-    const RealityModuleETH = await hre.ethers.getContractFactory(
-      "RealityModuleETH"
-    );
-    const factory = await Factory.deploy();
+  const baseSetup = async () => {
+    const [, deployer] = await ethers.getSigners()
+    const Factory = await hre.ethers.getContractFactory('ModuleProxyFactory')
+    const factory = await Factory.deploy()
+    const eip1193Provider = createAdapter({
+      provider: hre.network.provider,
+      signer: deployer,
+    })
+    await deployFactories({ provider: eip1193Provider })
+    const RealityModuleETH =
+      await hre.ethers.getContractFactory('RealityModuleETH')
 
     const masterCopy = await RealityModuleETH.deploy(
       FIRST_ADDRESS,
@@ -54,305 +60,360 @@ describe("Module can be deployed and configured via the DeterministicDeploymentH
       FIRST_ADDRESS,
       ZERO_ADDRESS,
       1,
+      61,
       0,
-      60,
       0,
       0,
-      ZERO_ADDRESS
-    );
+      ZERO_ADDRESS,
+    )
 
-    const Mock = await hre.ethers.getContractFactory("MockContract");
-    const mock = await Mock.deploy();
+    const Mock = await hre.ethers.getContractFactory('MockContract')
+    const mock = await Mock.deploy()
     const oracle = await hre.ethers.getContractAt(
-      "RealitioV3ERC20",
-      mock.address
-    );
+      'RealitioV3ERC20',
+      await mock.getAddress(),
+    )
+    return { factory, masterCopy, mock, oracle, eip1193Provider }
+  }
 
-    return { factory, masterCopy, mock, oracle };
-  });
-
-  it("option 0: can be deterministically deployed and set up, then configured with a custom template via `createTemplate`", async () => {
+  it('option 0: can be deterministically deployed and set up, then configured with a custom template via `createTemplate`', async () => {
     // in use this call should be done as a delegatecall from the module owner. Here we do a direct call for testing.
-
-    const { factory, masterCopy, mock, oracle } = await baseSetup();
-    const [safe] = await ethers.getSigners();
-
+    const { masterCopy, mock, oracle, factory } = await loadFixture(baseSetup)
+    const [safe] = await ethers.getSigners()
     const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
-      "DeterministicDeploymentHelper"
-    );
-
-    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
-
+      'DeterministicDeploymentHelper',
+    )
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy()
+    const deploymentHelperAddress = await deploymentHelper.getAddress()
+    const oracleAddress = await oracle.getAddress()
     const paramsValues = [
-      deploymentHelper.address, // set the deterministic deployment helper to be the owner. In production this will be the Safe.
+      deploymentHelperAddress, // set the deterministic deployment helper to be the owner. In production this will be the Safe.
       safe.address,
       safe.address,
-      oracle.address,
+      oracleAddress,
       timeout,
       cooldown,
       expiration,
       bond,
       defaultTemplateId,
       ARBITRATOR,
-    ];
-    const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
+    ]
+    const encodedParams = [
+      AbiCoder.defaultAbiCoder().encode(paramsTypes, paramsValues),
+    ]
     const initParams = masterCopy.interface.encodeFunctionData(
-      "setUp",
-      encodedParams
-    );
+      'setUp',
+      encodedParams,
+    )
+
     const receipt = await factory
-      .deployModule(masterCopy.address, initParams, SALT_NONCE)
-      .then((tx: any) => tx.wait());
+      .deployModule(await masterCopy.getAddress(), initParams, SALT_NONCE)
+      .then((tx: any) => tx.wait())
+
+    const parsedLogs = receipt.logs.map((log: any) => {
+      try {
+        return deploymentHelper.interface.parseLog(log)
+      } catch (error) {
+        return null
+      }
+    })
+
+    const event = parsedLogs.find(
+      (log: any) => log && log.name === 'ModuleProxyCreation',
+    )
 
     // retrieve new address from event
     const {
       args: [newProxyAddress],
-    } = receipt.events.find(
-      ({ event }: { event: string }) => event === "ModuleProxyCreation"
-    );
-    proxyAddress0 = newProxyAddress;
+    } = event
+
+    proxyAddress0 = newProxyAddress
 
     const newProxy = await hre.ethers.getContractAt(
-      "RealityModuleETH",
-      newProxyAddress
-    );
-    expect(await newProxy.template()).to.be.eq(BigNumber.from(0));
-    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
-    expect(await newProxy.avatar()).to.be.eq(safe.address);
-    expect(await newProxy.target()).to.be.eq(safe.address);
-    expect(await newProxy.oracle()).to.be.eq(oracle.address);
-    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
-    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
-    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
-    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
-    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
-    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
+      'RealityModuleETH',
+      newProxyAddress,
+    )
+    expect(await newProxy.template()).to.be.eq(BigInt(0))
+    expect(await newProxy.owner()).to.be.eq(deploymentHelperAddress)
+    expect(await newProxy.avatar()).to.be.eq(safe.address)
+    expect(await newProxy.oracle()).to.be.eq(oracleAddress)
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR)
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout)
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown)
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration)
+    expect(await newProxy.minimumBond()).to.be.eq(BigInt(bond))
+    expect(await newProxy.owner()).to.be.eq(deploymentHelperAddress)
 
-    await mock.givenMethodReturnUint(
-      oracle.interface.getSighash("createTemplate"),
-      5
-    );
+    const sighash = oracle.interface.getFunction('createTemplate').selector
+    await mock.givenMethodReturnUint(sighash, 5)
 
     await deploymentHelper
       .createTemplate(
         newProxyAddress,
-        oracle.address,
-        JSON.stringify(DEFAULT_TEMPLATE)
+        oracleAddress,
+        JSON.stringify(DEFAULT_TEMPLATE),
       )
-      .then((tx: any) => tx.wait());
+      .then((tx: any) => tx.wait())
 
-    expect(await newProxy.avatar()).to.be.eq(safe.address);
-    expect(await newProxy.target()).to.be.eq(safe.address);
-    expect(await newProxy.oracle()).to.be.eq(oracle.address);
-    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
-    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
-    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
-    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
-    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
-    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
-    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
-  });
+    expect(await newProxy.avatar()).to.be.eq(safe.address)
+    expect(await newProxy.oracle()).to.be.eq(oracleAddress)
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR)
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout)
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown)
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration)
+    expect(await newProxy.minimumBond()).to.be.eq(BigInt(bond))
+    expect(await newProxy.template()).to.be.eq(BigInt(5))
+    expect(await newProxy.owner()).to.be.eq(deploymentHelperAddress)
+  })
 
-  it("option 1: can be deterministically deployed and set up, then configured with a custom template and new owner via `createTemplateAndChangeOwner`", async () => {
-    const { factory, masterCopy, mock, oracle } = await baseSetup();
-    const [safe] = await ethers.getSigners();
-
+  it('option 1: can be deterministically deployed and set up, then configured with a custom template and new owner via `createTemplateAndChangeOwner`', async () => {
+    const { factory, masterCopy, mock, oracle } = await baseSetup()
+    const [safe] = await ethers.getSigners()
+  
     const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
-      "DeterministicDeploymentHelper"
-    );
-
-    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
-
+      'DeterministicDeploymentHelper',
+    )
+  
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy()
+  
     const paramsValues = [
-      deploymentHelper.address, // set the deterministic deployment helper to be the owner
+      await deploymentHelper.getAddress(), // set the deterministic deployment helper to be the owner
       safe.address,
       safe.address,
-      oracle.address,
+      await oracle.getAddress(),
       timeout,
       cooldown,
       expiration,
       bond,
       defaultTemplateId,
       ARBITRATOR,
-    ];
-    const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
-    const initParams = masterCopy.interface.encodeFunctionData(
-      "setUp",
-      encodedParams
-    );
-    const receipt = await factory
-      .deployModule(masterCopy.address, initParams, SALT_NONCE)
-      .then((tx: any) => tx.wait());
+    ]
+    
 
-    // retrieve new address from event
+    const encodedParams = [
+      AbiCoder.defaultAbiCoder().encode(paramsTypes, paramsValues),
+    ]
+    
+
+    const initParams = masterCopy.interface.encodeFunctionData(
+      'setUp',
+      encodedParams,
+    )
+  
+
+    const receipt = await factory
+      .deployModule(await masterCopy.getAddress(), initParams, SALT_NONCE)
+      .then((tx: any) => tx.wait())
+  
+
+    const parsedLogs = receipt.logs.map((log: any) => {
+      try {
+        return deploymentHelper.interface.parseLog(log)
+      } catch (error) {
+        return null
+      }
+    })
+  
+
+    const event = parsedLogs.find(
+      (log: any) => log && log.name === 'ModuleProxyCreation',
+    )
+  
+
     const {
       args: [newProxyAddress],
-    } = receipt.events.find(
-      ({ event }: { event: string }) => event === "ModuleProxyCreation"
-    );
-    proxyAddress1 = newProxyAddress;
+    } = event
+  
+
+    proxyAddress1 = proxyAddress0
+  
 
     const newProxy = await hre.ethers.getContractAt(
-      "RealityModuleETH",
-      newProxyAddress
-    );
-    expect(await newProxy.template()).to.be.eq(BigNumber.from(0));
-    expect(await newProxy.owner()).to.be.eq(deploymentHelper.address);
+      'RealityModuleETH',
+      newProxyAddress,
+    )
+  
 
-    await mock.givenMethodReturnUint(
-      oracle.interface.getSighash("createTemplate"),
-      5
-    );
+    expect(await newProxy.template()).to.be.eq(BigInt(0))
+    expect(await newProxy.owner()).to.be.eq(await deploymentHelper.getAddress())
+  
+
+    const sighash = oracle.interface.getFunction('createTemplate').selector
+    await mock.givenMethodReturnUint(sighash, 5)
+  
 
     await deploymentHelper
       .createTemplateAndChangeOwner(
         newProxyAddress,
-        oracle.address,
+        await oracle.getAddress(),
         JSON.stringify(DEFAULT_TEMPLATE),
-        safe.address
+        safe.address, 
       )
-      .then((tx: any) => tx.wait());
+      .then((tx: any) => tx.wait())
 
-    expect(await newProxy.avatar()).to.be.eq(safe.address);
-    expect(await newProxy.target()).to.be.eq(safe.address);
-    expect(await newProxy.oracle()).to.be.eq(oracle.address);
-    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
-    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
-    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
-    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
-    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
-    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
-    expect(await newProxy.owner()).to.be.eq(safe.address);
-  });
+      
 
-  it("option 2: can be deterministically set up and configured with a custom template via `deployWithEncodedParams`", async () => {
-    const { factory, masterCopy, mock, oracle } = await baseSetup();
-    const [safe] = await ethers.getSigners();
+    expect(await newProxy.avatar()).to.be.eq(safe.address)
+    expect(await newProxy.oracle()).to.be.eq(await oracle.getAddress())
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR)
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout)
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown)
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration)
+    expect(await newProxy.minimumBond()).to.be.eq(BigInt(bond))
+    expect(await newProxy.template()).to.be.eq(BigInt(5))
+
+    expect(await newProxy.owner()).to.be.eq(safe.address)
+  })
+  
+  
+
+  it('option 2: can be deterministically set up and configured with a custom template via `deployWithEncodedParams`', async () => {
+    const { masterCopy, mock, oracle, factory } = await loadFixture(baseSetup)
+    const [safe] = await ethers.getSigners()
 
     const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
-      "DeterministicDeploymentHelper"
-    );
+      'DeterministicDeploymentHelper',
+    )
 
-    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
-
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy()
+    const deploymentHelperAddress = await deploymentHelper.getAddress()
+    const oracleAddress = await oracle.getAddress()
     const paramsValues = [
-      deploymentHelper.address, // set the deterministic deployment helper to be the owner
-      safe.address,
-      safe.address,
-      oracle.address,
-      timeout,
-      cooldown,
-      expiration,
-      bond,
-      defaultTemplateId,
-      ARBITRATOR,
-    ];
-    const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
+      deploymentHelperAddress, // set the deterministic deployment helper to be the owner
+      safe.address, //avatar
+      safe.address, //target
+      oracleAddress, //oracle
+      timeout, //timeout
+      cooldown, //cooldown
+      expiration, //expiration
+      bond, //bond
+      defaultTemplateId, //templateId
+      ARBITRATOR, //arbitrator
+    ]
+    const encodedParams = [
+      AbiCoder.defaultAbiCoder().encode(paramsTypes, paramsValues),
+    ]
     const initParams = masterCopy.interface.encodeFunctionData(
-      "setUp",
-      encodedParams
-    );
-    await mock.givenMethodReturnUint(
-      oracle.interface.getSighash("createTemplate"),
-      5
-    );
+      'setUp',
+      encodedParams,
+    )
+    const sighash = oracle.interface.getFunction('createTemplate').selector
+    await mock.givenMethodReturnUint(sighash, 5)
 
     const receipt = await deploymentHelper
       .deployWithEncodedParams(
-        factory.address,
-        masterCopy.address,
+        await factory.getAddress(),
+        await masterCopy.getAddress(),
         initParams,
         SALT_NONCE,
-        oracle.address,
+        oracleAddress,
         JSON.stringify(DEFAULT_TEMPLATE),
-        safe.address
+        safe.address,
       )
-      .then((tx: any) => tx.wait());
+      .then((tx: any) => tx.wait())
+    const parsedLogs = receipt.logs.map((log: any) => {
+      try {
+        return deploymentHelper.interface.parseLog(log)
+      } catch (error) {
+        return null
+      }
+    })
+
+    const event = parsedLogs.find(
+      (log: any) => log && log.name === 'ModuleProxyCreation',
+    )
 
     // retrieve new address from event
     const {
       args: [newProxyAddress],
-    } = receipt.events.find(
-      ({ event }: { event: string }) => event === "ModuleProxyCreation"
-    );
-
-    proxyAddress2 = newProxyAddress;
-
+    } = event
+    proxyAddress2 = newProxyAddress
     const newProxy = await hre.ethers.getContractAt(
-      "RealityModuleETH",
-      newProxyAddress
-    );
+      'RealityModuleETH',
+      newProxyAddress,
+    )
 
-    expect(await newProxy.avatar()).to.be.eq(safe.address);
-    expect(await newProxy.target()).to.be.eq(safe.address);
-    expect(await newProxy.oracle()).to.be.eq(oracle.address);
-    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
-    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
-    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
-    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
-    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
-    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
-    expect(await newProxy.owner()).to.be.eq(safe.address);
-  });
+    expect(await newProxy.avatar()).to.be.eq(safe.address)
+    expect(await newProxy.oracle()).to.be.eq(oracleAddress)
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR)
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout)
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown)
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration)
+    expect(await newProxy.minimumBond()).to.be.eq(BigInt(bond))
+    expect(await newProxy.template()).to.be.eq(BigInt(5))
+    expect(await newProxy.owner()).to.be.eq(safe.address)
+  })
 
-  it("option 3: can be deterministically set up and configured with a custom template via `deployWithTemplate`", async () => {
-    const { factory, masterCopy, mock, oracle } = await baseSetup();
-    const [safe] = await ethers.getSigners();
+  it('option 3: can be deterministically set up and configured with a custom template via `deployWithTemplate`', async () => {
+    const { factory, masterCopy, mock, oracle } = await loadFixture(baseSetup)
+    const [safe] = await ethers.getSigners()
 
     const DeterministicDeploymentHelper = await hre.ethers.getContractFactory(
-      "DeterministicDeploymentHelper"
-    );
+      'DeterministicDeploymentHelper',
+    )
 
-    const deploymentHelper = await DeterministicDeploymentHelper.deploy();
+    const deploymentHelper = await DeterministicDeploymentHelper.deploy()
 
-    await mock.givenMethodReturnUint(
-      oracle.interface.getSighash("createTemplate"),
-      5
-    );
-
+    const sighash = oracle.interface.getFunction('createTemplate').selector
+    await mock.givenMethodReturnUint(sighash, 5)
+    const oracleAddress = await oracle.getAddress()
     const receipt = await deploymentHelper
-      .deployWithTemplate(factory.address, masterCopy.address, SALT_NONCE, {
-        realityOracle: oracle.address,
-        templateContent: JSON.stringify(DEFAULT_TEMPLATE),
-        owner: safe.address,
-        avatar: safe.address,
-        target: safe.address,
-        timeout: timeout,
-        cooldown: cooldown,
-        expiration: expiration,
-        bond: bond,
-        arbitrator: ARBITRATOR,
-      })
-      .then((tx: any) => tx.wait());
+      .deployWithTemplate(
+        await factory.getAddress(),
+        await masterCopy.getAddress(),
+        SALT_NONCE,
+        {
+          realityOracle: oracleAddress,
+          templateContent: JSON.stringify(DEFAULT_TEMPLATE),
+          owner: safe.address,
+          avatar: safe.address,
+          target: safe.address,
+          timeout: timeout,
+          cooldown: cooldown,
+          expiration: expiration,
+          bond: bond,
+          arbitrator: ARBITRATOR,
+        },
+      )
+      .then((tx: any) => tx.wait())
+
+    const parsedLogs = receipt.logs.map((log: any) => {
+      try {
+        return deploymentHelper.interface.parseLog(log)
+      } catch (error) {
+        return null
+      }
+    })
+
+    const event = parsedLogs.find(
+      (log: any) => log && log.name === 'ModuleProxyCreation',
+    )
 
     // retrieve new address from event
     const {
       args: [newProxyAddress],
-    } = receipt.events.find(
-      ({ event }: { event: string }) => event === "ModuleProxyCreation"
-    );
+    } = event
 
-    proxyAddress3 = newProxyAddress;
+    proxyAddress3 = newProxyAddress
 
     const newProxy = await hre.ethers.getContractAt(
-      "RealityModuleETH",
-      newProxyAddress
-    );
-    expect(await newProxy.avatar()).to.be.eq(safe.address);
-    expect(await newProxy.target()).to.be.eq(safe.address);
-    expect(await newProxy.oracle()).to.be.eq(oracle.address);
-    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR);
-    expect(await newProxy.questionTimeout()).to.be.eq(timeout);
-    expect(await newProxy.questionCooldown()).to.be.eq(cooldown);
-    expect(await newProxy.answerExpiration()).to.be.eq(expiration);
-    expect(await newProxy.minimumBond()).to.be.eq(BigNumber.from(bond));
-    expect(await newProxy.template()).to.be.eq(BigNumber.from(5));
-    expect(await newProxy.owner()).to.be.eq(safe.address);
-  });
+      'RealityModuleETH',
+      newProxyAddress,
+    )
+    expect(await newProxy.avatar()).to.be.eq(safe.address)
+    expect(await newProxy.oracle()).to.be.eq(oracleAddress)
+    expect(await newProxy.questionArbitrator()).to.be.eq(ARBITRATOR)
+    expect(await newProxy.questionTimeout()).to.be.eq(timeout)
+    expect(await newProxy.questionCooldown()).to.be.eq(cooldown)
+    expect(await newProxy.answerExpiration()).to.be.eq(expiration)
+    expect(await newProxy.minimumBond()).to.be.eq(BigInt(bond))
+    expect(await newProxy.template()).to.be.eq(BigInt(5))
+    expect(await newProxy.owner()).to.be.eq(safe.address)
+  })
 
-  it("no matter what deployment function is used, the module proxy should end up at the same address", async () => {
-    expect(proxyAddress0).to.equal(proxyAddress1);
-    expect(proxyAddress0).to.equal(proxyAddress2);
-    expect(proxyAddress0).to.equal(proxyAddress3);
-  });
-});
+  it('no matter what deployment function is used, the module proxy should end up at the same address', async () => {
+    expect(proxyAddress0).to.equal(proxyAddress1, 'Address from option 0 and 1 are different')
+    expect(proxyAddress0).to.equal(proxyAddress2, 'Address from option 0 and 2 are different')
+    expect(proxyAddress0).to.equal(proxyAddress3, 'Address from option 0 and 3 are different')
+  })
+})
