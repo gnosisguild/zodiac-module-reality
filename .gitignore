@@ -8,3 +8,4 @@ env/
 coverage*
 deployments
 .vscode/*
+typechain-types
