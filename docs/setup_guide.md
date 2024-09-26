@@ -50,7 +50,7 @@ For example, on Goerli using the default template this would be:
 
 For this guide we will assume that the returned template id is `0x0000000000000000000000000000000000000000000000000000000000000dad`.
 
-You can also create your template using the [Reality.eth Template Builder UI](https://reality.eth.link/app/template-generator/). For more info on using it, [use this guide](https://gnosis.github.io/zodiac/docs/tutorial-module-reality/add-template#template-builder).
+You can also create your template using the [Reality.eth Template Builder UI](https://reality.eth.link/app/template-generator/). For more info on using it, [use this guide](https://zodiac.wiki/index.php/Reality_Module:_Operator_Tutorial#Template_builder).
 
 Now that we have a template, a hardhat task can be used to deploy a Reality Module instance. The Reality Module will be linked to one DAO and an oracle.
 
