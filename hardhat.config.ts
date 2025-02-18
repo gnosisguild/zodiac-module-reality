@@ -19,12 +19,11 @@ const argv = yargs
 dotenv.config()
 const { INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK, ALCHEMY_KEY } = process.env
 
-import "./src/tasks/extract-mastercopy";
-import "./src/tasks/deploy-mastercopies";
-import "./src/tasks/deploy-mastercopy";
-import "./src/tasks/verify-mastercopies";
-import "./src/tasks/verify-mastercopy";
-
+import './src/tasks/extract-mastercopy'
+import './src/tasks/deploy-mastercopies'
+import './src/tasks/deploy-mastercopy'
+import './src/tasks/verify-mastercopies'
+import './src/tasks/verify-mastercopy'
 
 const DEFAULT_MNEMONIC =
   'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat'
@@ -54,7 +53,7 @@ export default {
   solidity: {
     compilers: [
       { version: '0.8.20' },
-      { version: '0.8.4' }, 
+      { version: '0.8.4' },
       { version: '0.8.2' },
       { version: '0.8.1' },
       { version: '0.8.0' },
@@ -90,6 +89,12 @@ export default {
       url: 'http://localhost:24012/rpc',
       timeout: 100000000,
     },
+    'lisk-sepolia': {
+      ...sharedNetworkConfig,
+      chainId: 4202,
+      url: 'https://rpc.sepolia-api.lisk.com',
+      gasPrice: 1000000000,
+    },
   },
   namedAccounts: {
     deployer: 0,
@@ -99,5 +104,15 @@ export default {
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
+    customChains: [
+      {
+        network: 'lisk-sepolia',
+        chainId: 4202,
+        urls: {
+          apiURL: 'https://sepolia-blockscout.lisk.com/api',
+          browserURL: 'https://sepolia-blockscout.lisk.com',
+        },
+      },
+    ],
   },
 }
